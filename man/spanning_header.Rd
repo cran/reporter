@@ -11,7 +11,8 @@ spanning_header(
   label = "",
   label_align = "center",
   level = 1,
-  n = NULL
+  n = NULL,
+  underline = TRUE
 )
 }
 \arguments{
@@ -19,12 +20,14 @@ spanning_header(
 
 \item{from}{The starting column to span.  Spanning columns are defined as
 range of columns 'from' and 'to'. The columns may be identified by position, 
-or by quoted or unquoted variable names.
+or by quoted or unquoted variable names. If you want to pass an R variable,
+escape the value with double curly braces, i.e. \code{from = {{myvar}}}.
 The \code{from} parameter is required.}
 
 \item{to}{The ending column to span.  Spanning columns are defined as
 range of columns 'from' and 'to'. The columns may be identified by position,
-or by quoted or unquoted variable names.
+or by quoted or unquoted variable names.  If you want to pass an R variable,
+escape the value with double curly braces, i.e. \code{to = {{myvar}}}.
 The \code{to} parameter is required.}
 
 \item{label}{The label to apply to the spanning header.}
@@ -40,6 +43,9 @@ By default, the level is set to 1.}
 \item{n}{The population count to use for the "N=" label on the spanning 
 header. The "N=" label will be formatted according to the \code{n_format}
 parameter on the \code{\link{create_table}} function.}
+
+\item{underline}{A TRUE or FALSE value indicating whether the spanning
+header should be underlined.  Default is TRUE.}
 }
 \value{
 The modified table spec.

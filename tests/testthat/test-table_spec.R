@@ -26,7 +26,7 @@ test_that("spanning header constructor works as expected.", {
     spanning_header(from = mpg, to = disp, 
                     label = "Span 1", n = 25, label_align = "left") %>% 
     spanning_header(from = hp, to = qsec, 
-                    label = "Span 2", n = 30) %>% 
+                    label = "Span 2", n = 30, underline = FALSE) %>% 
     define(mpg, format = "%.1f") %>% 
     define(cyl, width = 1) %>% 
     define(hp)
@@ -39,8 +39,10 @@ test_that("spanning header constructor works as expected.", {
   expect_equal(s[[1]]$n, 25)
   expect_equal(s[[1]]$from, "mpg")
   expect_equal(s[[1]]$to, "disp")
+  expect_equal(s[[1]]$underline, TRUE)
   expect_equal(s[[2]]$label, "Span 2")
   expect_equal(s[[2]]$n, 30)
+  expect_equal(s[[2]]$underline, FALSE)
   expect_equal(length(tbl$col_defs), 3)
   
   # Quoted Names
@@ -228,16 +230,16 @@ test_that("print.tbl_spec() works as expected.", {
     titles("Here is a much longer title to see what happens when I print it") %>% 
     footnotes("My footnote 1", "My footnote 2") %>% 
     spanning_header(from = "mpg", to = "disp", label = "My label") %>% 
+    stub(c(cyl, disp), "My stub") %>% 
     define(mpg, width = 2, label = "Miles per Gallon") %>% 
-    define(cyl, align = "left")
+    define(c(cyl, disp), align = "left")
   
   tbl
   
   tbl2 <- create_table(mtcars) 
   
   tbl2
-  
-  
+
   tbl3 <- create_table(mtcars) %>% 
     titles("Table 1", "My title") %>% 
     titles("Here is a much longer title to see what happens when I print it") %>% 
@@ -281,4 +283,132 @@ test_that("show_cols parameter works as expected.", {
   
 })
   
+
+test_that("define escape works as expected.", {
   
+  tbl <- create_table(mtcars)
+  
+  v1 <- c("mpg", "cyl")
+  
+  expect_error(define(tbl, vars = v1))
+  
+  
+  dfn <- define(tbl, vars = {{v1}})
+  
+  expect_equal(length(dfn$col_defs), 2)
+  expect_equal(dfn$col_defs[[1]]$var, "mpg")
+  expect_equal(dfn$col_defs[[2]]$var, "cyl")
+  
+  mytest <- function(myvar) {
+    
+    tbl1 <- create_table(mtcars)
+    dfn1 <- define(tbl1, {{myvar}})
+    return(dfn1$col_defs[[1]])
+  }
+  
+  
+  expect_equal(mytest("disp")$var, "disp")
+  
+})
+
+test_that("stub escape works as expected.", {
+  
+  tbl <- create_table(mtcars)
+  
+  v1 <- c("mpg", "cyl")
+  
+  expect_error(stub(tbl, vars = v1))
+  
+  
+  dfn <- stub(tbl, vars = {{v1}})
+  
+  expect_equal(length(dfn$stub$vars), 2)
+  expect_equal(dfn$stub$vars[[1]], "mpg")
+  expect_equal(dfn$stub$vars[[2]], "cyl")
+  
+  mytest <- function(myvar) {
+    
+    tbl1 <- create_table(mtcars)
+    dfn1 <- stub(tbl1, {{myvar}})
+    return(dfn1$stub$vars)
+  }
+  
+  
+  expect_equal(mytest("disp"), "disp")
+  
+})
+
+test_that("spanning header escape works as expected.", {
+  
+  tbl <- create_table(mtcars)
+  
+  v1 <- "mpg"
+  v2 <- "cyl"
+  
+  expect_error(spanning_header(tbl, from = v1, to = v2))
+  
+  sh <- spanning_header(tbl, from = {{v1}}, to = {{v2}})
+  
+  expect_equal(sh$col_spans[[1]]$from, "mpg")
+  expect_equal(sh$col_spans[[1]]$to, "cyl")
+  
+  mytest <- function(myvar1, myvar2) {
+    
+    tbl1 <- create_table(mtcars)
+    sh1 <- spanning_header(tbl1, from = {{myvar1}}, to = {{myvar2}})
+    return(sh1$col_spans[[1]])
+  }
+  
+  cs <- mytest("mpg", "disp")
+  expect_equal(cs$from, "mpg")
+  expect_equal(cs$to, "disp")
+  
+  v1 <- 1
+  v2 <- 4
+  
+  tbl2 <- create_table(mtcars)
+  sh2 <- spanning_header(tbl2, from = {{v1}}, to = {{v2}})
+  
+  expect_equal(sh2$col_spans[[1]]$from, "mpg")
+  expect_equal(sh2$col_spans[[1]]$to, "hp")
+  
+  
+})
+
+
+test_that("column_defaults escape works as expected.", {
+  
+  tbl <- create_table(mtcars)
+  
+  v1 <- c("mpg", "cyl")
+  
+  expect_error(column_defaults(tbl, vars = v1))
+  
+  
+  dfn <- column_defaults(tbl, vars = {{v1}})
+  
+  expect_equal(length(dfn$col_dflts[[1]]$vars), 2)
+  expect_equal(dfn$col_dflts[[1]]$vars[[1]], "mpg")
+  expect_equal(dfn$col_dflts[[1]]$vars[[2]], "cyl")
+  
+  mytest <- function(myvar) {
+    
+    tbl1 <- create_table(mtcars)
+    dfn1 <- column_defaults(tbl1, {{myvar}})
+    return(dfn1$col_dflts[[1]]$vars)
+  }
+  
+  
+  expect_equal(mytest("disp"), "disp")
+  
+  v1 <- "mpg"
+  v2 <- "disp"
+  
+  tbl <- create_table(mtcars)
+  dfn <- column_defaults(tbl, from = {{v1}}, to = {{v2}})
+  
+  expect_equal(dfn$col_dflts[[1]]$from, "mpg")
+  expect_equal(dfn$col_dflts[[1]]$to, "disp")
+  
+  
+})

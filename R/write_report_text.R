@@ -35,7 +35,7 @@ write_report_text <- function(rs) {
   
   # Assign pages to ls and continue processing
   ls <- ret[["pages"]]
-  
+
   # Deal with preview
   if (!is.null(rs$preview)) {
     if (rs$preview < length(ls[[1]]$pages))
@@ -49,7 +49,7 @@ write_report_text <- function(rs) {
   # Reason is we don't really know how many pages there are 
   # until the report is written.
   rs <- write_page_numbers(rs)
-  
+
   invisible(rs)
 }
 
@@ -275,16 +275,21 @@ page_setup <- function(rs) {
     print(paste0("Content Size: ", rs$content_size))
   
   # Line size is the number of characters that will fit in the content size width
-  if (is.null(rs$user_line_size))
-    rs$line_size <- ceiling(rs$content_size[["width"]] / rs$char_width)
-  else 
+  if (is.null(rs$user_line_size)) {
+    if (rs$output_type == "RTF") {
+      # 1 char adjustment to avoid occasional wrapping 
+      rs$line_size <- floor(rs$content_size[["width"]] / rs$char_width) - 1 
+    } else {
+      rs$line_size <- floor(rs$content_size[["width"]] / rs$char_width) 
+    }
+  } else 
     rs$line_size <- rs$user_line_size
   if (debug)
     print(paste0("Line Size: ", rs$line_size))
   
   # Line count is the number of lines that will fit in the content size height
   if (is.null(rs$user_line_count))
-    rs$line_count <- ceiling(rs$content_size[["height"]] / rs$line_height)
+    rs$line_count <- floor(rs$content_size[["height"]] / rs$line_height)
   else
     rs$line_count <- rs$user_line_count
   if (debug)
@@ -380,40 +385,72 @@ write_page_numbers <- function(rs) {
     
     return(ret)
   })
-  
+
   # Call vectorized function on entire page header/footer segment
+
   if (token_check(rs$page_header_left)) {
-    pg <- 1
-    lns <- replace_tokens(lns, rs$page_header_left, "left")
+    for (i in seq_len(length(rs$page_header_left))) {
+      if (token_check(rs$page_header_left[i])) {
+        pg <- 1
+        lns <- replace_tokens(lns, rs$page_header_left[i], "left")
+      }
+    }
   }
+
   if (token_check(rs$page_header_right)) {
-    pg <- 1
-    lns <- replace_tokens(lns, rs$page_header_right, "right")
+    for (i in seq_len(length(rs$page_header_right))) {
+      if (token_check(rs$page_header_right[i])) {
+        pg <- 1
+        lns <- replace_tokens(lns, rs$page_header_right[i], "right")
+      }
+    }
   }
+  
   if (token_check(rs$page_footer_left)) {
-    pg <- 1
-    lns <- replace_tokens(lns, rs$page_footer_left, "left")
+    for (i in seq_len(length(rs$page_footer_left))) {
+      if (token_check(rs$page_footer_left[i])) {
+        pg <- 1
+        lns <- replace_tokens(lns, rs$page_footer_left[i], "left")
+      }
+    }
   }
   if (token_check(rs$page_footer_center)) {
-    pg <- 1
-    lns <- replace_tokens(lns, rs$page_footer_center, "centre")
+    for (i in seq_len(length(rs$page_footer_center))) {
+      if (token_check(rs$page_footer_center[i])) {
+        pg <- 1
+        lns <- replace_tokens(lns, rs$page_footer_center[i], "centre")
+      }
+    }
   }
   if (token_check(rs$page_footer_right)) {
-    pg <- 1
-    lns <- replace_tokens(lns, rs$page_footer_right, "right")
+
+    for (i in seq_len(length(rs$page_footer_right))) {
+      if (token_check( rs$page_footer_right[i])) {
+        pg <- 1
+        lns <- replace_tokens(lns, rs$page_footer_right[i], "right")
+      }
+    }
   }
   if (!is.null(rs$title_hdr)) {
     if (token_check(rs$title_hdr$right)) {
-      pg <- 1
-      lns <- replace_tokens(lns, rs$title_hdr$right, "right")
+      for (i in seq_len(length(rs$title_hdr$right))) {
+        if (token_check(rs$title_hdr$right[i])) {
+          pg <- 1
+          lns <- replace_tokens(lns, rs$title_hdr$right[i], "right")
+        }
+      }
     }
   }
   
   for (cntnt in rs$content) {
    if (!is.null(cntnt$object$title_hdr)) { 
      if (token_check(cntnt$object$title_hdr$right)) {
-       pg <- 1
-       lns <- replace_tokens(lns, cntnt$object$title_hdr$right, "right")
+       for (i in seq_len(length(cntnt$object$title_hdr$right))) {
+         if (token_check(cntnt$object$title_hdr$right[i])) {
+          pg <- 1
+          lns <- replace_tokens(lns, cntnt$object$title_hdr$right[i], "right")
+         }
+       }
      }
      
    }

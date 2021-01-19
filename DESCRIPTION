@@ -1,7 +1,7 @@
 Package: reporter
 Type: Package
 Title: Creates Statistical Reports
-Version: 1.0.6
+Version: 1.1.2
 Author: David Bosak
 Maintainer: David Bosak <dbosak01@gmail.com>
 Description: Contains functions to create regulatory-style statistical reports.
@@ -17,14 +17,16 @@ Description: Contains functions to create regulatory-style statistical reports.
 License: CC BY-NC 4.0
 Encoding: UTF-8
 LazyData: true
+URL: https://reporter.r-sassy.org
+BugReports: https://github.com/dbosak01/reporter/issues
 SystemRequirements: pandoc (>= 1.12.3)
 Depends: R (>= 4.0.0)
 Suggests: testthat, magrittr, dplyr, tidyr, readr, knitr, ggplot2,
-        rmarkdown, gridExtra, survminer
+        rmarkdown, gridExtra, survminer, utils, logr
 Imports: fmtr, stringi, crayon
 RoxygenNote: 7.1.1
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2020-11-20 02:25:16 UTC; User
+Packaged: 2021-01-19 04:37:57 UTC; dbosa
 Repository: CRAN
-Date/Publication: 2020-11-20 07:30:06 UTC
+Date/Publication: 2021-01-19 06:40:06 UTC

@@ -133,7 +133,8 @@ create_table_pages_text <- function(rs, cntnt, lpg_rows) {
   #rs$column_widths[length(rs$column_widths) + 1] <- widths_uom
 
   # Convert to text measurements
-  widths_char <- round(widths_uom / rs$char_width)
+  # Adjust by -1 to account for space between columns
+  widths_char <- round(widths_uom / rs$char_width) - 1
   # print("Widths Char")
   # print(widths_char)
 
@@ -240,11 +241,11 @@ create_table_text <- function(rs, ts, pi, content_blank_row, wrap_flag,
     ls <- max(nchar(rws))
   
   if (!is.null(ts$title_hdr))
-    ttls <- get_title_header(ts$title_hdr, ls - 1)
+    ttls <- get_title_header(ts$title_hdr, ls - 1, rs$uchar)
   else
-    ttls <- get_titles(ts$titles, ls) 
+    ttls <- get_titles(ts$titles, ls, rs$uchar) 
   
-  ftnts <- get_footnotes(ts$footnotes, ls) 
+  ftnts <- get_footnotes(ts$footnotes, ls, rs$uchar) 
   #print("Titles")
   #print(ttls)
   
@@ -298,9 +299,9 @@ get_content_offsets <- function(rs, ts, pi, content_blank_row) {
   }
 
   if (is.null(ts$title_hdr))
-    ttls <- get_titles(ts$titles, rs$line_size) 
+    ttls <- get_titles(ts$titles, rs$line_size, rs$uchar) 
   else 
-    ttls <- get_title_header(ts$title_hdr, rs$line_size)
+    ttls <- get_title_header(ts$title_hdr, rs$line_size, rs$uchar)
   
   pgb <- c()
   if (!is.null(ts$page_by))
@@ -337,7 +338,7 @@ get_table_header <- function(rs, ts, pi) {
   
   lbls <- pi$label
   lbla <- pi$label_align
-  w <- round(pi$col_width / rs$char_width)
+  w <- round(pi$col_width / rs$char_width) - 1 # Adjust for gutter
   # print("Label A")
   # print(lbla)
   ret <- c()
@@ -395,7 +396,7 @@ get_spanning_header <- function(rs, ts, pi) {
   spns <- ts$col_spans
   cols <- pi$keys
   cols <- cols[!is.controlv(cols)]
-  w <- round(pi$col_width / rs$char_width)
+  w <- round(pi$col_width / rs$char_width) - 1 # Adjust for gutter
   w <- w[cols]
   
   # print("Cols:")
@@ -463,14 +464,16 @@ get_spanning_header <- function(rs, ts, pi) {
     s$align <- ""
     s$n <- NA
     s$name <- ""
+    s$underline <- TRUE
     
     # Populate data structure with labels, alignments, and n values from 
     # spanning column objects
     counter <- 1
     for (index in s$span) {
       if (index > 0) {
-        s$label[counter] <- slvl[[l]][[index]]$label
+        s$label[counter] <- slvl[[l]][[index]]["label"]
         s$align[counter] <- slvl[[l]][[index]]$label_align
+        s$underline[counter] <- slvl[[l]][[index]]$underline
         if (!is.null(slvl[[l]][[index]]$n))
           s$n[counter] <- slvl[[l]][[index]]$n
 
@@ -546,8 +549,12 @@ get_spanning_header <- function(rs, ts, pi) {
       if (s$span[i] > 0) {
         if (rs$output_type == "PDF")
           r <- paste0(r, paste0(rep("-", s$width[i] - 1), collapse = ""), " ")
-        else
-          r <- paste0(r, paste0(rep(rs$uchar, s$width[i] - 1), collapse = ""), " ")
+        else {
+          if (s$underline[i])
+            r <- paste0(r, paste0(rep(rs$uchar, s$width[i] - 1), collapse = ""), " ")
+          else 
+            r <- paste0(r, paste0(rep(" ", s$width[i] - 1), collapse = ""), " ")
+        }
           
       } else {
         r <- paste0(r, paste0(rep(" ", s$width[i]), collapse = ""))

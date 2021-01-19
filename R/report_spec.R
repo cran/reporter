@@ -130,7 +130,9 @@
 #' #      * New York, May to September 1973
 #' @export
 create_report <- function(file_path = "", output_type = "TXT", 
-                          #font_type = "fixed",
+                          # report_type = "tabular" or "flat", 
+                          # font_type = "fixed" or "variable" 
+                          # tabular = TRUE
                           orientation ="landscape", units = "inches",
                           paper_size = "letter", missing = "") {
   # Force for now
@@ -161,6 +163,14 @@ create_report <- function(file_path = "", output_type = "TXT",
                 "create_report() function is invalid: '", units,
                 "'\n\tValid values are: 'inches' or 'cm'."))
   }
+  
+  # if (!units %in% c("inches", "cm", "char")) {
+  #   
+  #   stop(paste0("units parameter on ",
+  #               "create_report() function is invalid: '", units,
+  #               "'\n\tValid values are: 'inches', 'cm', or 'char'."))
+  # }
+  
   
   # Trap missing or invalid paper_size parameter.
   if (!paper_size %in% c("letter", "legal", "A4", "RD4")) {
@@ -270,11 +280,12 @@ editor_settings <- read.table(header = TRUE, text = '
                     wordpad        10.8      4.2       6     2.35      0      0
                     pdf12            12     4.70       5    2.000  .1967     .5
                     pdf10       14.2222     5.58    6.10      2.4  .1967     .5
-                    rtf10            12   4.7619    6.28      2.5      0      0
-                    rtf12            10   3.9473  5.3333     2.05      0      0
+                    pdf8           17.5     6.88    7.55     2.95  .1967     .5
+                    rtf12            10   3.9473     5.4     2.05      0      0
+                    rtf10            12   4.7619    6.38      2.5      0      0
+                    rtf8             15      5.9    7.95     3.05      0      0
                                ') 
-# Good: rtf12, rtf10, pdf12, pdf10, wordpad, word
-# Not tested: editplus, notepad, notepad++
+
 
 #' @title
 #' Set options for a fixed-width report
@@ -334,7 +345,7 @@ editor_settings <- read.table(header = TRUE, text = '
 #' 
 #' Some of the \code{options_fixed} function apply only to RTF and PDF.
 #' In particular, the \code{font_size} parameter applies only to RTF and PDF
-#' reports.  Valid font size options are 10 and 12.
+#' reports.  Valid font size options are 8, 10, and 12.
 #' 
 #' @param x The report spec.
 #' @param editor The expected text editor to use for printing text reports.  
@@ -358,8 +369,8 @@ editor_settings <- read.table(header = TRUE, text = '
 #' should be set to zero.  Valid values are TRUE and FALSE. Default is
 #' FALSE.  This option is only valid for \code{output_type = 'TXT'}.
 #' @param font_size The size of the font in points.  Default is 10pt.  This
-#' option is only valid for output types RTF and PDF.  Valid values are 10 and 
-#' 12.
+#' option is only valid for output types RTF and PDF.  Valid values are 8, 10, 
+#' and 12.
 #' @param line_size The number of characters that will fit on a line.  Normally,
 #' the \code{line_size} is calculated based on the page size, font size, and cpuom.
 #' You can override the calculated value by setting the \code{line_size}
@@ -378,6 +389,7 @@ editor_settings <- read.table(header = TRUE, text = '
 #' of measure, \code{\link{write_registration_file}} to determine the 
 #' characters and lines per unit of measure manually.
 #' @family report
+#' @encoding UTF-8
 #' @examples
 #' library(reporter)
 #' library(magrittr)
@@ -387,10 +399,10 @@ editor_settings <- read.table(header = TRUE, text = '
 #'
 #' # Define table
 #' tbl <- create_table(BOD, width = 2.5) %>% 
-#'   titles("Table 3.6", "BOD¹ Sample Report") %>% 
+#'   titles("Table 3.6", "BOD* Sample Report") %>% 
 #'   define(Time, format = "Day %s", align = "left") %>% 
 #'   define(demand, format = "%2.1f mg/l", label = "Demand") %>% 
-#'   footnotes("¹ Biochemical Oxygen Demand")
+#'   footnotes("* Biochemical Oxygen Demand")
 #'        
 #' # Define report #1 - No blank margins
 #' rpt <- create_report(tmp, orientation="portrait") %>%
@@ -451,12 +463,21 @@ options_fixed <- function(x, editor = NULL, cpuom = NULL, lpuom = NULL,
                           font_size = 10, line_size = NULL, line_count = NULL,
                           uchar = "\U00AF") {
   
+  if (!"report_spec" %in% class(x)) {
+    stop("Input object must be of class 'report_spec'.") 
+  }
+  
   if (x$output_type == "TXT") {
     if (is.null(editor)) {
       # Trap missing or invalid cpuom parameter.
-      if (is.null(cpuom))
-        x$cpuom <- if (x$units == "inches") 12 else 4.687
-      else if (!(cpuom >= 8 & cpuom <= 14)) {
+      if (is.null(cpuom)) {
+        if (x$units == "inches")
+          x$cpuom <- 12 
+        else if (x$units == "cm")
+          x$cpuom <- 4.687
+        else if (x$units == "char")
+          x$cpuom <- 1
+      } else if (!(cpuom >= 1 & cpuom <= 14)) {
         
         stop(paste0("cpi parameter on create_report() ",
                     "function is invalid: '", cpuom,
@@ -466,9 +487,14 @@ options_fixed <- function(x, editor = NULL, cpuom = NULL, lpuom = NULL,
         x$cpuom <- cpuom
         
       # Trap missing or invalid lpuom parameter.
-      if (is.null(lpuom))
-        x$lpuom <- if (x$units == "inches") 6 else 2.55
-      else if (!(lpuom > 0 & lpuom <= 10)) {
+      if (is.null(lpuom)) {
+        if (x$units == "inches")
+          x$lpuom <-  6 
+        else if (x$units == "cm")
+          x$lpuom <- 2.55
+        else if (x$units == "char")
+          x$lpuom <- 1
+      } else if (!(lpuom > 0 & lpuom <= 10)) {
         
         stop(paste0("lpuom parameter on create_report() ",
                     "function is invalid: '", lpuom,
@@ -499,16 +525,21 @@ options_fixed <- function(x, editor = NULL, cpuom = NULL, lpuom = NULL,
       
       x$editor <- editor
       
-      # Set columns per unit of measure
+      # Set characters per unit of measure
       # and lines per unit of measure
       if (x$units == "inches") {
         x$cpuom <- e$cpi
         x$lpuom <- e$lpi
         x$min_margin <- e$mmi
-      } else {
+      } else if (x$units == "cm") {
         x$cpuom <- e$cpcm
         x$lpuom <- e$lpcm
         x$min_margin <- e$mmcm
+      } else if (x$units == "char") {
+        
+        x$cpuom <- 1
+        x$lpuom <- 1
+        x$min_margin <- round(e$mmi / 12)
       }
       
       # print(paste("cpuom:", x$cpuom))
@@ -524,18 +555,25 @@ options_fixed <- function(x, editor = NULL, cpuom = NULL, lpuom = NULL,
       e <- editor_settings[editor_settings$editor == "pdf12", ]
     else if (font_size == 10)
       e <- editor_settings[editor_settings$editor == "pdf10", ]
+    else if (font_size == 8)
+      e <- editor_settings[editor_settings$editor == "pdf8", ]
     else 
-      stop("Invalid font_size setting.  Valid values are 10 and 12")
+      stop("Invalid font_size setting.  Valid values are 8, 10 and 12")
     
     # Set cpuom and lpuom
     if (x$units == "inches") {
       x$cpuom <- e$cpi
       x$lpuom <- e$lpi
       x$min_margin <- e$mmi
-    } else {
+    } else if (x$units == "cm") {
       x$cpuom <- e$cpcm
       x$lpuom <- e$lpcm
       x$min_margin <- e$mmcm
+    } else if (x$units == "char") {
+      
+      x$cpuom <- 1
+      x$lpuom <- 1
+      x$min_margin <- round(e$mmi / 12)
     }
     
     x$blank_margins <- FALSE
@@ -547,18 +585,24 @@ options_fixed <- function(x, editor = NULL, cpuom = NULL, lpuom = NULL,
       e <- editor_settings[editor_settings$editor == "rtf12", ]
     else if (font_size == 10)
       e <- editor_settings[editor_settings$editor == "rtf10", ]
+    else if (font_size == 8)
+      e <- editor_settings[editor_settings$editor == "rtf8", ]
     else 
-      stop("Invalid font_size setting.  Valid values are 10 and 12")
+      stop("Invalid font_size setting.  Valid values are 8, 10 and 12")
     
     # Set cpuom and lpuom
     if (x$units == "inches") {
       x$cpuom <- e$cpi
       x$lpuom <- e$lpi
       x$min_margin <- e$mmi
-    } else {
+    } else if (x$units == "cm") {
       x$cpuom <- e$cpcm
       x$lpuom <- e$lpcm
       x$min_margin <- e$mmcm
+    } else if (x$units == "char") {
+      x$cpuom <- 1
+      x$lpuom <- 1
+      x$min_margin <- round(e$mmi / 12)
     }
     
     x$blank_margins <- FALSE
@@ -697,8 +741,14 @@ set_margins <- function(x, top=NULL, bottom=NULL,
     else
       x$margin_top = top
   }
-  else
-    x$margin_top = if (x$units == "inches") .5 else 1.27
+  else {
+    if (x$units == "inches")
+      x$margin_top <- .5 
+    else if (x$units == "cm")
+      x$margin_top <- 1.27
+    else if (x$units == "char")
+      x$margin_top <- set_char_margins(x, "top")
+  }
   
   if (!is.null(bottom)) {
     if (is.na(bottom) | bottom < 0| !is.numeric(bottom)){
@@ -707,8 +757,14 @@ set_margins <- function(x, top=NULL, bottom=NULL,
     else
       x$margin_bottom = bottom
   }
-  else
-    x$margin_bottom = if (x$units == "inches") .5 else 1.27
+  else {
+    if (x$units == "inches")
+      x$margin_bottom <- .5 
+    else if (x$units == "cm")
+      x$margin_bottom <- 1.27
+    else if (x$units == "char")
+      x$margin_bottom <- set_char_margins(x, "bottom")
+  }
   
   if (!is.null(left)) {
     if (is.na(left) | left < 0| !is.numeric(left)){
@@ -717,8 +773,15 @@ set_margins <- function(x, top=NULL, bottom=NULL,
     else
       x$margin_left = left
   }
-  else
-    x$margin_left = if (x$units == "inches") 1 else 2.54
+  else {
+    if (x$units == "inches")
+      x$margin_left <-  1 
+    else if (x$units == "cm")
+      x$margin_left <- 2.54
+    else if (x$units == "char")
+      x$margin_left <- set_char_margins(x, "left")
+    
+  }
   
   if (!is.null(right)) {
     if (is.na(right) | right < 0| !is.numeric(right)){
@@ -727,13 +790,46 @@ set_margins <- function(x, top=NULL, bottom=NULL,
     else 
       x$margin_right = right
   }
-  else
-    x$margin_right = if (x$units == "inches") 1 else 2.54
+  else {
+    if (x$units == "inches")
+      x$margin_right <- 1 
+    else if (x$units == "cm")
+      x$margin_right <- 2.54
+    else if (x$units == "char")
+      x$margin_right <- set_char_margins(x, "right")
+  }
 
 
   return(x)
 }
 
+#' @noRd
+set_char_margins <- function(rs, margin) {
+  
+  ret <- NULL
+  if (!is.null(rs$font_size)) {
+    if (rs$font_size == 8) {
+      if (margin %in% c("right", "left"))
+        ret <- 15
+      else if (margin %in% c("top", "bottom"))
+        ret <- 4
+    }  
+    if (rs$font_size == 10) {
+      if (margin %in% c("right", "left"))
+        ret <- 12
+      else if (margin %in% c("top", "bottom"))
+        ret <- 3
+    }  
+    if (rs$font_size == 12) {
+      if (margin %in% c("right", "left"))
+        ret <- 10
+      else if (margin %in% c("top", "bottom"))
+        ret <- 3
+    }  
+  }
+  
+  return(ret)
+}
 
 # Page Template Items -----------------------------------------------
 
@@ -884,6 +980,8 @@ page_header <- function(x, left="", right="", blank_row = "none"){
 #' title header.  Pass the header strings as a vector of strings.
 #' @param blank_row Where to place a blank row.  Valid values are 'above',
 #' 'below', 'both', or 'none'.  Default is 'below'.
+#' @param borders Whether and where to place a border. Valid values are 'top',
+#' 'bottom', 'all', or 'none'.  Default is 'none'.  
 #' @return The modified report.
 #' @family report
 #' @examples
@@ -933,7 +1031,8 @@ page_header <- function(x, left="", right="", blank_row = "none"){
 #' # 
 #' #     * In billions of dollars
 #' @export
-title_header <- function(x, ..., right = "", blank_row = "below") {
+title_header <- function(x, ..., right = "", 
+                         blank_row = "below", borders = "none") {
   
 
   diff <- setdiff(class(x), c("list"))
@@ -957,9 +1056,18 @@ title_header <- function(x, ..., right = "", blank_row = "below") {
   if (!is.null(x$page_header_left) | !is.null(x$page_header_right))
     stop("Cannot add both a page header and a title header.")
   
+  if (!blank_row %in% c("above", "below", "both", "none"))
+    stop(paste("Blank row parameter invalid.  Valid values are", 
+               "'above', 'below', 'both', or 'none'."))
+  
+  if (!all(borders %in% c("top", "bottom", "all", "none")))
+    stop(paste("Borders parameter invalid.  Valid values are", 
+               "'top', 'bottom', 'all', or 'none'."))
+  
   # Assign attributes
   ttl_hdr$titles <-  c(...)
   ttl_hdr$blank_row <- blank_row
+  ttl_hdr$borders <- borders
   ttl_hdr$right <- right
   
   x$title_hdr <- ttl_hdr
@@ -1006,7 +1114,8 @@ title_header <- function(x, ..., right = "", blank_row = "below") {
 #' 
 #' Each title string must fit within the available space.  The \strong{reporter}
 #' package will not wrap titles.  If a title does not fit within the 
-#' available space, an error will be generated.  In these situations, either
+#' available space, a warning will be generated and the title will be 
+#' truncated.  In these situations, either
 #' shorten the title or split it into multiple titles that each fit within the
 #' available space. 
 #'
@@ -1017,6 +1126,8 @@ title_header <- function(x, ..., right = "", blank_row = "below") {
 #' 'right', 'center' or 'centre'.  For titles, the default is 'center'.
 #' @param blank_row Where to place a blank row.  Valid values are 'above',
 #' 'below', 'both', or 'none'.  Default is "below".
+#' @param borders Whether and where to place a border. Valid values are 'top',
+#' 'bottom', 'all', or 'none'.  Default is "none".
 #' @return The modified report.
 #' @family report
 #' @examples
@@ -1051,7 +1162,6 @@ title_header <- function(x, ..., right = "", blank_row = "below") {
 #' 
 #' # Display in console
 #' writeLines(readLines(tmp, encoding = "UTF-8"))
-#' 
 #' #                               Table 1.0
 #' #               US Personal Expenditures from 1940 - 1960
 #' # 
@@ -1065,7 +1175,8 @@ title_header <- function(x, ..., right = "", blank_row = "below") {
 #' # 
 #' #     * In billions of dollars
 #' @export
-titles <- function(x, ..., align = "center", blank_row = "below"){
+titles <- function(x, ..., align = "center", blank_row = "below", 
+                   borders = "none"){
 
   # Create title structure
   ttl <- structure(list(), class = c("title_spec", "list"))
@@ -1075,10 +1186,19 @@ titles <- function(x, ..., align = "center", blank_row = "below"){
   
   if (!is.null(x$title_hdr))
     stop("Cannot add both titles and a title header.")
+  
+  if (!blank_row %in% c("above", "below", "both", "none"))
+    stop(paste("Blank row parameter invalid.  Valid values are", 
+               "'above', 'below', 'both', or 'none'."))
+  
+  if (!all(borders %in% c("top", "bottom", "all", "none")))
+    stop(paste("Borders parameter invalid.  Valid values are", 
+               "'top', 'bottom', 'all', or 'none'."))
 
   # Assign attributes
   ttl$titles <-  c(...)
   ttl$blank_row <- blank_row
+  ttl$borders <- borders
   ttl$align <- align
 
   x$titles[[length(x$titles) + 1]] <- ttl
@@ -1115,7 +1235,8 @@ titles <- function(x, ..., align = "center", blank_row = "below"){
 #' 
 #' Each footnote string must fit within the available space.  The \strong{reporter}
 #' package will not wrap footnotes.  If a footnote does not fit within the 
-#' available space, an error will be generated.  In these situations, either
+#' available space, a warning will be generated and the footnote will be 
+#' truncated.  In these situations, either
 #' shorten the footnote or split it into multiple footnotes that each fit within 
 #' the available space. 
 #' 
@@ -1125,6 +1246,14 @@ titles <- function(x, ..., align = "center", blank_row = "below"){
 #' 'right', 'center', or 'centre'.
 #' @param blank_row Whether to print a blank row above or below the footnote.
 #' Valid values are 'above', 'below', 'both', or 'none'.  Default is 'above'.
+#' @param borders Whether to print a border above or below the footnote. Valid
+#' values are 'top', 'bottom', 'all',  or 'none'.  Default is 'none'.  
+#' For fixed width reports, the 
+#' border character will be taken from the value of the \code{uchar} parameter
+#' on the \code{\link{options_fixed}} function.
+# @param valign The vertical position to align the footnotes.  Valid
+# values are: 'top' and 'bottom'.  For footnotes attached to a report,
+# default is 'bottom'.  For footnotes attached to content, default is 'top'.
 #' @return The modified report.
 #' @family report
 #' @examples
@@ -1173,7 +1302,10 @@ titles <- function(x, ..., align = "center", blank_row = "below"){
 #' # 
 #' #     * In billions of dollars
 #' @export
-footnotes <- function(x, ..., align = "left", blank_row = "above"){
+footnotes <- function(x, ..., align = "left", blank_row = "above", 
+                      borders = "none"
+                      #, valign = NULL
+                      ){
 
   # Create footnote structure
   ftn <- structure(list(), class = c("footnote_spec", "list"))
@@ -1183,10 +1315,34 @@ footnotes <- function(x, ..., align = "left", blank_row = "above"){
   if (length(ft) > 25){
     stop("footnotes function is limited to a maximum of 25 footnotes.")
   }
+  
+  if (!align %in% c("left", "right"))
+    stop(paste("Align parameter invalid. Valid values are 'left' and 'right'"))
+  
+  # if (!is.null(valign)) {
+  #   if (!valign %in% c("top", "bottom"))
+  #     stop(paste("Valign parameter invalid. Valid values are 'top' and 'bottom'"))
+  # } 
+  
+  if (!blank_row %in% c("above", "below", "both", "none"))
+    stop(paste("Blank row parameter invalid.  Valid values are", 
+               "'above', 'below', 'both', or 'none'."))
+  
+  if (any(!borders %in% c("top", "bottom", "all", "none")))
+    stop(paste("Borders parameter invalid.  Valid values are", 
+               "'top', 'bottom', 'all', or 'none'."))
 
   ftn$footnotes <- ft
   ftn$blank_row <- blank_row
   ftn$align <- align
+  ftn$borders <- borders
+  
+  # if (is.null(valign)) {
+  #   if ("report_spec" %in% class(x))
+  #     ftn$valign <- "bottom"
+  #   else 
+  #     ftn$valign <- "top"
+  # }
   
   x$footnotes[[length(x$footnotes) + 1]] <- ftn
 
@@ -1691,7 +1847,8 @@ add_content <- function(x, object, page_break=TRUE, align = "center",
 #' # 
 #' # * NOTE: Data on beaver habits
 #' @export
-write_report <- function(x, file_path = NULL, output_type = NULL, preview = NULL) {
+write_report <- function(x, file_path = NULL, 
+                         output_type = NULL, preview = NULL) {
   
   
   if (!"report_spec" %in% class(x)) {
@@ -1770,6 +1927,8 @@ write_report <- function(x, file_path = NULL, output_type = NULL, preview = NULL
   # } else if (x$output_type == "docx") {
   #   ret <- write_report_docx(x, ...)
   # }
+  
+  log_logr(ret)
   
   return(ret)
 }
@@ -1872,6 +2031,9 @@ print.report_spec <- function(x, ..., verbose = FALSE){
     cat(paste0("- output_type: ", x$output_type, "\n"))
     cat(paste0("- units: ", x$units, "\n"))
     cat(paste0("- orientation: ", x$orientation, "\n"))
+    cat(paste0("- margins: top ", x$margin_top, " bottom ", 
+               x$margin_bottom, " left ", x$margin_left, 
+               " right ", x$margin_right, "\n"))
     if (!is.null(x$line_size)) 
       cat(paste0("- line size/count: ", x$line_size, "/", x$line_count, "\n"))
     

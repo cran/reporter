@@ -783,3 +783,145 @@ test_that("user7: listings with NA values works.", {
 #   
 #   
 # })
+
+# Special Case
+# test_that("mismatched format works as expected.", {
+#   
+#   
+#   fp <- file.path(base_path, "data/final.rds")
+#   
+#   final <- readRDS(fp)
+#   
+#   var_fmt <- c("AGE" = "Age", "AGEGR1" = "Age Group", "SEX" = "Sex", "RACE" = "Race")
+#   
+#   arm_pop <- c("ARM A" = 20, "ARM B" = 21,  "ARM C" = 21, "ARM D" = 23) 
+#   
+#   # Create Table
+#   tbl <- create_table(final, first_row_blank = TRUE, width = 9) %>% 
+#     column_defaults(from = `ARM A`, to = `ARM D`, align = "center", width = 1) %>% 
+#     stub(vars = c("var", "label"), "Variable", width = 2.5) %>% 
+#     define(var, blank_after = TRUE, dedupe = TRUE, label = "Variable",
+#            format = var_fmt,label_row = TRUE) %>% 
+#     define(label, indent = .25, label = "Demographic Category") %>% 
+#     define(`ARM A`,  n = arm_pop["ARM A"]) %>% 
+#     define(`ARM B`,  n = arm_pop["ARM B"]) %>% 
+#     define(`ARM C`,  n = arm_pop["ARM C"]) %>% 
+#     define(`ARM D`,  n = arm_pop["ARM D"]) %>% 
+#     define(stat, label = "Tests of Association*\nValue (P-value)",  
+#            width = 2, dedupe = TRUE, align = "center") %>% 
+#     titles("Table 1.0", "Analysis of Demographic Characteristics", 
+#            "Safety Population") %>% 
+#     footnotes("R Program: Table1_0.R",
+#               "NOTE: Denominator based on number of non-missing responses.",
+#               "*Pearsons's Chi-Square tests will be used for categorical variables",
+#               "   and ANOVA tests for continuous variables.") 
+#   
+# 
+#   
+#   rpt <- create_report("output/DM_Table2.rtf", output_type = "RTF") %>% 
+#     set_margins(top = 1, bottom = 1) %>% 
+#     page_header("Sponsor: Experis", "Study: ABC") %>% 
+#     add_content(tbl) %>% 
+#     page_footer(paste0("Date Produced: ", fapply(Sys.time(), "%d%b%y %H:%M")), 
+#                 right = "Page [pg] of [tpg]")
+#   
+#   write_report(rpt) 
+#   
+#   
+# })
+
+
+
+test_that("user12: Complex table works as expected.", {
+  
+  if (dev) {
+    library(readr)
+    
+    # Data Filepath
+    dir_data <- file.path(data_dir, "data")
+    
+    fp <- file.path(base_path, "user/user12")
+    
+    # Load Data
+    dat <- file.path(dir_data, "kk.csv") %>%
+      read_csv() 
+    
+    mfmt <- Vectorize(function(x) {
+      
+      if (is.na(x))
+        ret <- "-"
+      else 
+        ret <- as.character(x)
+    })
+    
+    pfmt <- Vectorize(function(x) {
+      
+      if (is.na(x))
+        ret <- ""
+      else 
+        ret <- paste0("(", format(x, width = 4, justify = "right"), ")")
+    })
+    
+    nfmt <- Vectorize(function(x) {
+      
+      if (is.na(x))
+        ret <- ""
+      else 
+        ret <- paste0(format(x, width = 2, justify = "right"), "  ")
+    })
+    
+    # Define table
+    tbl <- create_table(dat, width = 9) %>% 
+      spanning_header(COL1, COL2, "LLY10", n = 70, underline = FALSE, label_align = "center") %>% 
+      spanning_header(COL3, COL4, "LLY20", n = 49, underline = FALSE, label_align = "center") %>% 
+      spanning_header(COL5, COL6, "LLY75", n = 19, underline = FALSE, label_align = "center") %>% 
+      spanning_header(COL8, COL10, "Pairwise p-values*b") %>% 
+      spanning_header(COL11, COL11, "Odds\nratios*c") %>% 
+      column_defaults(from = COL1, to = COL11, align = "center", width = .4) %>% 
+      stub(c(CATEGORY, LABEL), width = 3.25) %>% 
+      define(CATEGORY, label_row = TRUE) %>% 
+      define(LABEL, indent = .25) %>% 
+      define(COL1, label = "n", format = nfmt) %>% 
+      define(COL2, label = "(%)", format = pfmt) %>% 
+      define(COL3, label = "n", format = nfmt) %>% 
+      define(COL4, label = "(%)", format = pfmt) %>% 
+      define(COL5, label = "n", format = nfmt) %>% 
+      define(COL6, label = "(%)", format = pfmt) %>% 
+      define(COL7, label = "Overall\np-value*a", format = mfmt, width = .7) %>% 
+      define(COL8, label = "LLY20\nvs\nLLY10", format = mfmt) %>% 
+      define(COL9, label = "LLY75\nvs\nLLY10", format = mfmt) %>% 
+      define(COL10, label = "LLY75\nvs\nLLY20", format = mfmt) %>% 
+      define(COL11, label = "LLY75/\nLLY20", width = .6, format = mfmt) %>% 
+      titles("Testing Odds, Pairwise and Overall with 3 Trts",
+             "SAMPLE TEXT FOR title5", align = "left", borders = "bottom", blank_row = "none") %>%
+      footnotes("Abbreviations: N = number of subjects in population; n = number of subjects within category.",
+                "LLY10=LILLY_DRUG_10_mg; LLY20=LILLY_DRUG_20_mg; LLY75=LILLY_DRUG_75_mg.",
+                "*a - p-value for overall treatment effect were computed using Fisher's Exact test.",
+                "*b - p-values for pairwise treatment comparisons were computed using Chi-Square test.",
+                "*c - odds ratios based on comparator LILLY_DRUG_20_mg as denominator.",
+                "Program Location: /lillyce/qa/vct/common/rums/taffy_rums/dev_r/c_ds_dispsum/c_ds_dispsum_4.R",
+                "Output Location: /lillyce/qa/vct/common/rums/taffy_rums/dev_r/c_ds_dispsum/validation/output/odds_pair_overall_h_test.docx",
+                "Data Set Location: /lillyce/qa/vct/common/rums/taffy_rums/data/multi arms",
+               borders = "top", blank_row = "none")
+    
+    # Define Report
+    rpt <- create_report(fp, output_type = "RTF") %>%
+      options_fixed(font_size = 8) %>% 
+      set_margins(top = 1, bottom = .5, left = 1, right = 1) %>% 
+      page_header(right = c("Page [pg] of [tpg]",
+                            format(Sys.time(), "%H:%M %d-%b-%Y"),
+                            "DDDL"
+                            )) %>%
+      add_content(tbl, align = "left") 
+    
+    # Write out report
+    res <- write_report(rpt)
+    res
+    
+    expect_equal(file.exists(res$modified_path), TRUE)
+
+    
+  } else
+    expect_equal(TRUE, TRUE)
+  
+})

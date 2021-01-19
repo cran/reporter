@@ -58,7 +58,7 @@ write_report_pdf <- function(rs) {
   ls <- readLines(tmp_path, encoding = "UTF-8")
 
   # Revise text and write to pdf
-  write_pdf_output(rs, ls, rmd_path, orig_path, tmp_dir)
+  fls <- write_pdf_output(rs, ls, rmd_path, orig_path, tmp_dir)
 
   # Restore original path
   rs$modified_path <- orig_path
@@ -67,8 +67,9 @@ write_report_pdf <- function(rs) {
   if (!debug) {
     file.remove(tmp_path)
     file.remove(rmd_path)
-    nms <- list.files(tmp_dir, pattern = "(.*)\\.png", full.names = TRUE)
-    file.remove(nms)
+    #nms <- list.files(tmp_dir, pattern = "(.*)\\.png", full.names = TRUE)
+    if (length(fls) > 0)
+      file.remove(fls)
     #unlink(tmp_dir, recursive = TRUE)
   }
   
@@ -81,6 +82,7 @@ write_pdf_output <- function(rs, ls, rmd_path, pdf_path, tmp_dir) {
   # Set up vectors
   hdr <- c() 
   body <- c() 
+  ret <- c()
   
   # Prepare header
   hdr[length(hdr) + 1] <- "---"
@@ -95,6 +97,10 @@ write_pdf_output <- function(rs, ls, rmd_path, pdf_path, tmp_dir) {
     hdr[length(hdr) + 1] <- "fontsize: 10pt"
   else if (rs$font_size == 12)
     hdr[length(hdr) + 1] <- "fontsize: 12pt"
+  # if (rs$font_size == 8)
+  #   hdr[length(hdr) + 1] <- "classoption: 8pt"
+
+
   
   # "left=3cm,right=3cm,top=2cm,bottom=2cm"
   if (rs$units == "inches") {
@@ -114,9 +120,12 @@ write_pdf_output <- function(rs, ls, rmd_path, pdf_path, tmp_dir) {
   else if (rs$paper_size == "A4")
     hdr[length(hdr) + 1] <- "papersize: a4"
   hdr[length(hdr) + 1] <- "header-includes:"
+  if (rs$font_size == 8)
+    hdr[length(hdr) + 1] <- "  - \\usepackage[fontsize=8pt]{scrextend}"
   hdr[length(hdr) + 1] <- "  - \\renewcommand{\\familydefault}{\\ttdefault}"
   hdr[length(hdr) + 1] <- "  - \\thispagestyle{empty}"
   hdr[length(hdr) + 1] <- "---"
+
   hdr[length(hdr) + 1] <- "\\pagenumbering{gobble}"
   hdr[length(hdr) + 1] <- "\\begin{verbatim}"
 
@@ -140,6 +149,7 @@ write_pdf_output <- function(rs, ls, rmd_path, pdf_path, tmp_dir) {
       spec <- strsplit(rw, "|", fixed = TRUE)[[1]]
       
       pth <- gsub("\\", "/", spec[[1]], fixed = TRUE)
+      ret[length(ret) + 1] <- pth
   
       # 1 = path
       # 2 = height
@@ -197,12 +207,26 @@ write_pdf_output <- function(rs, ls, rmd_path, pdf_path, tmp_dir) {
 
   close(f)
   
-  rmarkdown::render(rmd_path, rmarkdown::pdf_document(), t1, quiet = TRUE)
+  # There is a known warning on rendering 8pt font.
+  # Can't figure out how to get rid of it.
+  # So going to suppress it for now.
+  # Other fonts sizes shouldn't have any warnings.
+  if (rs$font_size == 8) {
+    suppressWarnings(rmarkdown::render(rmd_path, 
+                                       rmarkdown::pdf_document(), t1, 
+                                       quiet = TRUE))
+  } else {
+    rmarkdown::render(rmd_path, 
+                      rmarkdown::pdf_document(), t1, 
+                      quiet = TRUE)
+  }
   
   file.copy(t1, pdf_path)
 
   if (file.exists(t1))
     file.remove(t1)
+  
+  return(ret)
   
 }
 

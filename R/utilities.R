@@ -274,8 +274,7 @@ compare_rows <- function(row1, row2) {
  
   ret <- TRUE
   for(i in seq_along(row1)) {
-    
-    if (row1[[i]] != row2[[i]]) {
+    if (!strong_eq(row1[[i]], row2[[i]])) {
       ret <- FALSE
       break
     }
@@ -284,6 +283,31 @@ compare_rows <- function(row1, row2) {
   return(ret)
   
 }
+
+#' @noRd
+strong_eq <- Vectorize(function(x1, x2) {
+  
+  ret <- TRUE
+  if (is.null(x1) & is.null(x2))
+    ret <- TRUE
+  else if (is.null(x1) & !is.null(x2))
+    ret <- FALSE
+  else if (!is.null(x1) & is.null(x2))
+    ret <- FALSE
+  else if (is.na(x1) & is.na(x2))
+    ret <- TRUE
+  else if (is.na(x1) & !is.na(x2))
+    ret <- FALSE
+  else if (!is.na(x1) & is.na(x2))
+    ret <- FALSE
+  else {
+    ret <- x1 == x2
+    
+  }
+  
+  return(ret)
+  
+})
 
 #' @noRd
 get_breaks <- function(x) {
@@ -385,6 +409,18 @@ get_page_size <- function(paper_size, units) {
       ret <- c(21, 29.7)
     else if (paper_size == "RD4")
       ret <- c(19.6, 27.3)
+    
+     # For character units, 
+     # use inches and convert
+  }  else if (units == "char") {
+    if (paper_size == "letter")
+      ret <- c(8.5, 11)
+    else if (paper_size == "legal")
+      ret <- c(8.5, 14)
+    else if (paper_size == "A4")
+      ret <- c(8.27, 11.69)
+    else if (paper_size == "RD4")
+      ret <- c(7.7, 10.7)
   }
   
   return(ret)
@@ -671,6 +707,16 @@ getExtension <- function(file){
   return(ex[-1])
 } 
 
+
+#' @noRd
+log_logr <- function(x) {
+ 
+  if (length(find.package('logr', quiet=TRUE)) > 0) {
+    if (utils::packageVersion("logr") >= "1.2.0") {
+      logr::log_hook(x)
+    }
+  }
+}
 
 
 # Sizing utilities --------------------------------------------------------

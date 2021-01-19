@@ -260,3 +260,138 @@ test_that("ttfn11: blank hitting page break works as expected.", {
   
 })
 
+
+test_that("ttfn12: title and footnote with bottom borders assigned to table works.", {
+  
+  fp <- file.path(base_path, "titles/ttfn12.out")
+  
+  tbl <- create_table(mtcars[1:10, ]) %>% 
+    titles("MTCARS Data Frame 1", align = "center", 
+           borders = "bottom") %>% 
+    footnotes("MTCARS Data Frame 2", align = "left", 
+              borders = "bottom") 
+  
+  rpt <- create_report(fp) %>% 
+    add_content(tbl, align = "center")
+  
+  
+  write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("ttfn13: title and footnote with top borders assigned to table works.", {
+  
+  fp <- file.path(base_path, "titles/ttfn13.out")
+  
+  tbl <- create_table(mtcars[1:10, ]) %>% 
+    titles("MTCARS Data Frame 1", align = "center", 
+           borders = "top") %>% 
+    footnotes("MTCARS Data Frame 2", align = "left", 
+              borders = "top") 
+  
+  rpt <- create_report(fp) %>% 
+    add_content(tbl, align = "center")
+  
+  
+  write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("ttfn14: title_header with bottom borders assigned to table works.", {
+  
+  fp <- file.path(base_path, "titles/ttfn14.out")
+  
+  tbl <- create_table(mtcars[1:10, ]) %>% 
+    title_header("MTCARS Data Frame 1", 
+           borders = "bottom") %>% 
+    footnotes("MTCARS Data Frame 2", align = "left", 
+              borders = "bottom") 
+  
+  rpt <- create_report(fp) %>% 
+    add_content(tbl, align = "center")
+  
+  
+  write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+
+test_that("ttfn15: title_header with top borders assigned to table works.", {
+  
+  fp <- file.path(base_path, "titles/ttfn15.out")
+  
+  tbl <- create_table(mtcars[1:10, ]) %>% 
+    title_header("MTCARS Data Frame 1", 
+           borders = "top") %>% 
+    footnotes("MTCARS Data Frame 2", align = "left", 
+              borders = "top") 
+  
+  rpt <- create_report(fp) %>% 
+    add_content(tbl, align = "center")
+  
+  
+  write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("ttfn16: Long title generates warning not error.", {
+  
+  fp <- file.path(base_path, "titles/ttfn16.out")
+  
+  tbl <- create_table(mtcars[1:10, 1:3]) %>% 
+    titles("MTCARS Data Frame 1 MTCARS Data Frame 1 ", align = "left") %>% 
+    footnotes("MTCARS", align = "left") 
+  
+  rpt <- create_report(fp) %>% 
+    add_content(tbl, align = "center")
+  
+  
+  expect_warning(write_report(rpt))
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("ttfn17: Long footnote generates warning not error.", {
+  
+  fp <- file.path(base_path, "titles/ttfn17.out")
+  
+  tbl <- create_table(mtcars[1:10, 1:3]) %>% 
+    titles("MTCARS Data", align = "left") %>% 
+    footnotes("MTCARS Data Frame 1 MTCARS Data Frame 2", align = "left") 
+  
+  rpt <- create_report(fp) %>% 
+    add_content(tbl, align = "center")
+  
+  
+  expect_warning(write_report(rpt))
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("ttfn18: Long title_header generates warning not error.", {
+  
+  fp <- file.path(base_path, "titles/ttfn18.out")
+  
+  tbl <- create_table(mtcars[1:10, 1:3]) %>% 
+    title_header("MTCARS Data Frame 1 MTCARS Data Frame 1 ", right = "Header") %>% 
+    footnotes("MTCARS", align = "left") 
+  
+  rpt <- create_report(fp) %>% 
+    add_content(tbl, align = "center")
+  
+  
+  expect_warning(write_report(rpt))
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})

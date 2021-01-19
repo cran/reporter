@@ -747,7 +747,8 @@ test_that("test20: show_cols 'some' parameter on table works as expected.", {
 
   tbl <- create_table(mtcars[1:10, ], 
                       show_cols = c("vs", "mpg", "cyl", "disp")) %>% 
-    define(mpg)
+    define(mpg, label = "Miles Per Gallon") %>% 
+    define(vs, label = "")
   
   
   rpt <- create_report(fp) %>% 
@@ -1459,7 +1460,7 @@ test_that("test46: Another title_header test to check alignment.", {
   
 })
 
-
+# Alignment is off on this one.
 test_that("test47: CM Table with long cell and label values wraps as expected.", {
   
   
@@ -2029,5 +2030,334 @@ test_that("test62: Parameters on column defaults are overridden by single define
   
   expect_equal(length(lns), res$pages * res$line_count)
   
+})
+
+
+
+test_that("test63: Simple regulatory table with borders works as expected.", {
+  
+  library(tidyr)
+  library(dplyr)
+  
+  fp <- file.path(base_path, "output/test63.out")
+  
+  dat <- mtcars
+  
+  # Hard coded this so report would come out the same every time.
+  #dat$group <- replicate(nrow(dat), sample(c("A", "B"), 1), simplify = TRUE)
+  dat$group <- c("B", "B", "B", "B", "B", "B", "A", "A", "B", "A", "A", 
+                 "A", "A", "B", "A", "B", "B", "A", "B", "B", "B", "A",
+                 "A", "A", "A", "A", "A", "B", "B", "A", "B", "B")
+  dat$cyl <- factor(dat$cyl, levels = c(8, 6, 4), 
+                    labels = c("8 Cylinder", "6 Cylinder", "4 Cylinder")) 
+  group_pop <- table(dat$group)
+  
+  
+  dat_mpg <-
+    dat %>%
+    group_by(group) %>%
+    summarise(across(.cols = mpg,
+                     .fns = list(N      = ~ fmt_n(.),
+                                 Mean   = ~ fmt_mean_sd(.),
+                                 Median = ~ fmt_median(.),
+                                 `Q1 - Q3` = ~ fmt_quantile_range(.),
+                                 Range  = ~ fmt_range(.)
+                     ))) %>%
+    pivot_longer(-group,
+                 names_to  = c("var", "label"),
+                 names_sep = "_",
+                 values_to = "value") %>%
+    pivot_wider(names_from = group,
+                values_from = "value")
+  
+  
+  dat_cyl <-
+    dat %>%
+    add_count(group, cyl,  name = "n_cyl") %>%
+    select(group, cyl, n_cyl) %>%
+    distinct() %>%
+    pivot_longer(cols = c(cyl),
+                 names_to  = "var",
+                 values_to = "label") %>%
+    pivot_wider(names_from  = group,
+                values_from = n_cyl,
+                values_fill = 0) %>%
+    mutate(A = fmt_cnt_pct(A, group_pop["A"]),
+           B = fmt_cnt_pct(B, group_pop["B"])) %>% 
+    arrange(label)
+  
+  
+  
+  
+  final <- bind_rows(dat_mpg, dat_cyl)
+  #print(final)
+  
+  tbl <- create_table(final, first_row_blank = TRUE) %>% 
+    stub(c("var", "label")) %>% 
+    define(var, blank_after = TRUE, label_row = TRUE, 
+           format = c(mpg = "Miles Per Gallon", cyl = "Cylinders")) %>% 
+    define(label, indent = .25) %>% 
+    define(A, label = "Group A", align = "center") %>% 
+    define(B, label = "Group B", align = "center")
+  
+  
+  # Create mtcars table
+  rpt <- create_report(fp, orientation = "portrait") %>% 
+    page_header(left = "Client: Motor Trend", right = "Study: Cars") %>% 
+    titles("Table 1.0", "MTCARS Summary Table", borders = "all") %>% 
+    add_content(tbl) %>% 
+    footnotes("* Motor Trend, 1973", borders = "all") %>%
+    page_footer(left = "Time", 
+                center = "Confidential", 
+                right = "Page [pg] of [tpg]")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+  lns <- readLines(fp)
+  
+  expect_equal(length(lns), res$pages * res$line_count)
+  
+})
+
+test_that("test64: Title header with border on report works as expected.", {
+  
+  fp <- file.path(base_path, "output/test64.out")
+  
+  
+  rpt <- create_report(fp) %>%
+    title_header("Table 1.0", "IRIS Data Frame", 
+                 right = c("Study ABC", "Client A", "Page [pg] of [tpg]"),
+                 borders = "all") %>%
+    add_content(create_table(iris)) %>% 
+    page_footer("DateTime", right = "Page")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+  lns <- readLines(fp)
+  
+  expect_equal(length(lns), res$pages * res$line_count)
+  
+})
+
+
+test_that("test65: Title header with borders on table works as expected.", {
+  
+  fp <- file.path(base_path, "output/test65.out")
+  
+  tbl <- create_table(iris) %>% 
+    title_header("Table 1.0", "IRIS Data Frame",
+                 right = c("Study ABC", "Client A", "Page [pg] of [tpg]"),
+                 blank_row = "below", borders = "all")
+  
+  rpt <- create_report(fp) %>%
+    add_content(tbl) 
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+  lns <- readLines(fp)
+  
+  expect_equal(length(lns), res$pages * res$line_count)
+  
+})
+
+
+test_that("test66: Titles and footnotes with border on table works as expected.", {
+  
+  fp <- file.path(base_path, "output/test66.out")
+  
+  tbl <- create_table(iris) %>% 
+    titles("Table 1.0", "IRIS Data Frame",
+                 blank_row = "below", borders = "all") %>% 
+    footnotes("Here is a footnote", "And another",
+              borders = "all")
+  
+  rpt <- create_report(fp) %>%
+    page_header("Left", "Right") %>% 
+    add_content(tbl) %>% 
+    page_footer("left", "", "right")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+  lns <- readLines(fp)
+  
+  expect_equal(length(lns), res$pages * res$line_count)
+  
+})
+
+
+test_that("test67: Title header with border on report works as expected.", {
+  
+  fp <- file.path(base_path, "output/test67.out")
+  
+  
+  rpt <- create_report(fp) %>%
+    page_header("Left", "Right") %>% 
+    titles("Table 1.0", "IRIS Data Frame",
+                 borders = "all") %>%
+    add_content(create_table(iris)) %>% 
+    footnotes("Something", borders = "all") %>% 
+    page_footer("DateTime", right = "Page")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+  lns <- readLines(fp)
+  
+  expect_equal(length(lns), res$pages * res$line_count)
+  
+})
+
+
+
+
+test_that("test68: show_cols 'some' parameter and label works as expected.", {
+  
+  fp <- file.path(base_path, "output/test68.out")
+  
+  mycols <- c("vs", "mpg", "cyl", "disp")
+  myvar1 = "vs"
+  myvar2 = "mpg"
+  tbl <- create_table(mtcars[1:10, ], 
+                      show_cols = mycols, use_attributes = "none") %>% 
+    define({{myvar2}}, label = "n", width = 1.5) %>% 
+    define({{myvar1}}, label = "(%)", width = 1.5)
+  
+  
+  rpt <- create_report(fp, missing = NULL) %>% 
+    titles("MTCARS Data Frame", align = "center") %>% 
+    add_content(tbl)
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+  lns <- readLines(fp)
+  
+  expect_equal(length(lns), res$pages * res$line_count)
+  
+})
+
+test_that("test69: Table with spanning headers no underline works as expected.", {
+  
+  fp <- file.path(base_path, "output/test69.out")
+  
+  
+  df <- data.frame(vehicle = rownames(mtcars), mtcars)
+  rownames(df) = NULL
+  
+  df$qsec <- fattr(df$qsec, format = "%.1f")
+  df$wt <- fattr(df$wt, justify = "center", width = .75)
+  
+  tbl <- create_table(df) %>% 
+    spanning_header("mpg", "hp",
+                    label = "Span 1", label_align = "center", n = 10) %>% 
+    spanning_header("drat", "qsec",
+                    label = "Span 2", label_align = "center", n = 10, 
+                    underline = FALSE) %>%
+    spanning_header("vs", "carb",
+                    label = "Span 3", label_align = "center", n = 10) %>%
+    spanning_header(from = "drat", to = "carb", label = "Super Span",
+                    label_align = "center",
+                    level = 2) %>%
+    define(vehicle, label = "Vehicle") %>% 
+    define(mpg, format = "%.1f")
+  
+  rpt <- create_report(fp) %>% 
+    add_content(tbl) %>% 
+    titles("Table 1.0", "MTCARS Subset Test")
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+  
+  lns <- readLines(fp)
+  
+  expect_equal(length(lns), res$pages * res$line_count)
+  
+})
+
+test_that("test70: Column widths work as expected.", {
+  
+  
+  fp <- file.path(base_path, "output/test70.out")
+  
+  dat <- unlist(rep("AAAAAAAAA B", 10))
+  
+  df <- data.frame(col1 = dat, col2 = dat, col3 = dat, col4 = dat, col5 = dat,
+                   col6 = dat, col7 = dat, col8 = dat, col9 = dat)
+  
+  tbl <- create_table(df) %>% 
+    spanning_header(1, 2, "Span 1") %>% 
+    spanning_header(3, 5, "Span 2") %>% 
+    spanning_header(1, 5, "Super Span", level = 2) %>% 
+    column_defaults(width = 1) %>% 
+    footnotes("Here is a really long footnote that will need a few columns to contain.")
+  
+  rpt <- create_report(fp, output_type = "TXT") %>% 
+    set_margins(left = 1, right = 1) %>% 
+    add_content(tbl, align = "left") 
+  
+
+  res <- write_report(rpt)
+  
+  
+  lns <- readLines(fp)
+  
+  expect_equal(length(lns), res$pages * res$line_count)
+  expect_equal(res$pages, 1)
+})
+
+
+test_that("test71: Column widths work as expected with fractional widths.", {
+  
+  
+  fp <- file.path(base_path, "output/test71.out")
+  
+  dat <- unlist(rep("AAA", 10))
+  
+  df <- data.frame(col1 = dat, col2 = dat, col3 = dat, col4 = dat, col5 = dat,
+                   col6 = dat, col7 = dat, col8 = dat, col9 = dat)
+  
+  tbl <- create_table(df) %>% 
+    spanning_header(1, 2, "Span 1") %>% 
+    spanning_header(3, 5, "Span 2") %>% 
+    spanning_header(1, 5, "Super Span", level = 2) %>% 
+    column_defaults(width = .5) %>% 
+    define(col1, width = 3.5) %>% 
+    define(col2, width = 1) %>% 
+    define(col7, width = .7) %>%
+    define(col8, width = 1.3) %>% 
+    footnotes("Here is a really long footnote that will need a few columns to contain.")
+  
+  rpt <- create_report(fp, output_type = "TXT") %>% 
+    set_margins(left = 1, right = 1) %>% 
+    add_content(tbl, align = "left")
+  
+  
+  res <- write_report(rpt)
+  
+  
+  # print(res, verbose = TRUE)
+
+  lns <- readLines(fp)
+
+  expect_equal(length(lns), res$pages * res$line_count)
+  expect_equal(res$pages, 1)
 })
 

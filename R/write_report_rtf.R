@@ -40,7 +40,7 @@ write_report_rtf <- function(rs) {
   # print(tmp_path)
   # print(rtf_path)
   # print(getwd())
-  
+
   if (file.exists(orig_path))
     file.remove(orig_path)
   
@@ -49,36 +49,40 @@ write_report_rtf <- function(rs) {
   
   # Create text output normally to temp location
   rs <- write_report_text(rs)
-  
+
   # Read lines from text output
   ls <- readLines(tmp_path)
-  
+
   # Revise text and write to rtf
-  write_rtf_output(rs, ls, rtf_path, orig_path, tmp_dir)
+  fls <- write_rtf_output(rs, ls, rtf_path, orig_path, tmp_dir)
   
   # Restore original path
   rs$modified_path <- orig_path
-  
+
   # Clean up
   if (!debug) {
     file.remove(tmp_path)
     #file.remove(rtf_path)
-    nms <- list.files(tmp_dir, pattern = "(.*)\\.png", full.names = TRUE)
-    file.remove(nms)
+    #nms <- list.files(tmp_dir, pattern = "(.*)\\.png", full.names = TRUE)
+    if (length(fls) > 0)
+      file.remove(fls)
     #unlink(tmp_dir, recursive = TRUE)
   }
-  
+
   return(rs)
 }
 
 
 # May need some adjustments/sophistication/options to this function
+#' @return Vector of graphic file paths
 #' @noRd
 write_rtf_output <- function(rs, ls, rtf_path, orig_path, tmp_dir) {
   
   # Set up vectors
   hdr <- c() 
   body <- c() 
+  
+  ret <- c()
 
   
   # Get conversion factor to twips
@@ -102,14 +106,16 @@ write_rtf_output <- function(rs, ls, rtf_path, orig_path, tmp_dir) {
   }
   
   hdr[length(hdr) + 1] <- paste0("\\margl", round(rs$margin_left * conv),
-                                "\\margr", round(rs$margin_right * .9 * conv),
+                                "\\margr", round(rs$margin_right * conv),
                                 "\\margt", round(rs$margin_top * conv),
-                                "\\margb", round(rs$margin_bottom/2 * conv))
+                                "\\margb", round(rs$margin_bottom  * conv))
 
   if (rs$font_size == 10)
     hdr[length(hdr) + 1] <- "\\fs20"
   else if (rs$font_size == 12)
     hdr[length(hdr) + 1] <- "\\fs24"
+  else if (rs$font_size == 8)
+    hdr[length(hdr) + 1] <- "\\fs16"
   
   # Start with all lines
   body <- encodeRTF(ls)
@@ -136,6 +142,7 @@ write_rtf_output <- function(rs, ls, rtf_path, orig_path, tmp_dir) {
       # 4 = align
       
       img <- get_image_rtf(spec[[1]], as.numeric(spec[[3]]), as.numeric(spec[[2]]), rs$units)
+      ret[length(ret) + 1] <- spec[[1]]
       
       # Create latex codes
       if (spec[[4]] == "left") {
@@ -152,14 +159,27 @@ write_rtf_output <- function(rs, ls, rtf_path, orig_path, tmp_dir) {
     }
   }
   
+  # Get page breaks
+  pgs <- grepl("\f", body, fixed = TRUE)
+  
+  # Adjust by one to get previous line
+  pgs <- pgs[2:length(pgs)]
+  
+  # Add one for end of document
+  pgs[length(pgs) + 1] <- TRUE 
+  # print(length(body))
+  # print(length(pgs))
+  # print(pgs)
+  
   body <- gsub("\f", "\\page ", body, fixed = TRUE)
+  body <- paste0(body, ifelse(pgs, "", "\\line"))
   
   # Write to file  
   f <- file(orig_path, open="a")
   
   writeLines(hdr, con = f)
   
-  writeLines(paste0(body, "\\line"), con = f)
+  writeLines(body, con = f)
   
   writeLines("}", con = f)
   
@@ -167,6 +187,8 @@ write_rtf_output <- function(rs, ls, rtf_path, orig_path, tmp_dir) {
   
 #   file.copy(rtf_path, orig_path)
 #   file.remove(rtf_path)
+  
+  return(ret)
 
 }
 

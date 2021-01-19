@@ -10,9 +10,9 @@ page_template_text <- function(rs) {
   pt <- structure(list(), class = c("page_template_text", "list"))
   
   pt$page_header <- get_page_header(rs)
-  pt$title_hdr <- get_title_header(rs$title_hdr, rs$line_size)
-  pt$titles <- get_titles(rs$titles, rs$line_size)
-  pt$footnotes <- get_footnotes(rs$footnotes, rs$line_size)
+  pt$title_hdr <- get_title_header(rs$title_hdr, rs$line_size, rs$uchar)
+  pt$titles <- get_titles(rs$titles, rs$line_size + 1, rs$uchar)
+  pt$footnotes <- get_footnotes(rs$footnotes, rs$line_size + 1, rs$uchar)
   pt$page_footer <- get_page_footer(rs)
   # Page by not here.  Messes up line counts.
   
@@ -59,12 +59,14 @@ get_page_header <- function(rs) {
         ln <- paste0(stri_pad_right(hl, width = lw), hr) 
       }
       
-      else
+      else {
         stop(paste0("Page header exceeds available width\n", 
                     "Header Left: ", hl, "\n", 
                     "Header Right: ", hr, "\n",
                     "Header length: ", nchar(hl) + nchar(hr), "\n",
                     "Line length: ", rs$line_size, "\n"))
+        ln <- ""
+      }
       
       ret[i] <- ln
     }
@@ -83,7 +85,7 @@ get_page_header <- function(rs) {
 #' @param width The width to set the title strings to
 #' @return A vector of strings
 #' @noRd
-get_titles <- function(titles, width) {
+get_titles <- function(titles, width, uchar = "-") {
   
   if (is.null(width)) {
     stop("width cannot be null.") 
@@ -104,6 +106,10 @@ get_titles <- function(titles, width) {
       if (ttl$blank_row %in% c("above", "both") & length(ttl$titles) > 0)
         ret[length(ret) + 1] <- ""
       
+      if (any(ttl$borders %in% c("top", "all")) & length(ttl$titles) > 0)
+        ret[length(ret) + 1] <-  paste0(paste0(rep(uchar, ll - 1), 
+                                               collapse = ""), " ")
+      
       for (i in seq_along(ttl$titles)) {
       
         t <- ttl$titles[i]
@@ -120,15 +126,35 @@ get_titles <- function(titles, width) {
           else if (ttl$align == "center" | ttl$align == "centre")
             ln <- stri_pad_both(t, ll)
           
-        } else 
-          stop(paste0("Title exceeds available width.",
+        } else {
+          warning(paste0("Title exceeds available width.",
                       "\nTitle: ", t,
                       "\nTitle width: ", nchar(t),
                       "\nLine length: ", ll))
+          
+          tgp <- ll - 3
+
+          if (tgp >= 0) {
+            if (ttl$align == "left") {
+              ln <- paste0(substr(stri_pad_right(t, ll), 1, tgp), "...")
+            } else if (ttl$align == "right") {
+              ln <- paste0("...", substr(stri_pad_left(t, ll), 1, tgp))
+            } else if (ttl$align == "center" | ttl$align == "centre") {
+              ln <- paste0(substr(stri_pad_both(t, ll), 1, tgp), "...")
+            }
+            
+            
+          } else ln <- ""
+          
+        }
         
         
         ret[length(ret) + 1] <- ln
       }
+      
+      if (any(ttl$borders %in% c("bottom", "all")) & length(ttl$titles) > 0)
+        ret[length(ret) + 1] <- paste0(paste0(rep(uchar, ll - 1), 
+                                              collapse = ""), " ")
       
       if (ttl$blank_row %in% c("below", "both") & length(ttl$titles) > 0)
         ret[length(ret) + 1] <- ""
@@ -206,7 +232,7 @@ get_page_by <- function(pgby, width, value) {
 #' @param width The width to set the title header to
 #' @return A vector of strings
 #' @noRd
-get_title_header <- function(title_hdr, width) {
+get_title_header <- function(title_hdr, width, uchar = "-") {
   
   if (is.null(width)) {
     stop("width cannot be null.") 
@@ -224,6 +250,9 @@ get_title_header <- function(title_hdr, width) {
     
     if (title_hdr$blank_row %in% c("above", "both") & length(title_hdr$titles) > 0)
       ret[length(ret) + 1] <- ""
+    
+    if (any(title_hdr$borders %in% c("top", "all")) & length(title_hdr$titles) > 0)
+      ret[length(ret) + 1] <-  paste0(paste0(rep(uchar, ll), collapse = ""), " ")
     
     maxlen <- length(title_hdr$titles)
     if (length(title_hdr$right) > maxlen)
@@ -252,17 +281,30 @@ get_title_header <- function(title_hdr, width) {
           ln <- paste0(stri_pad_right(t, ll - nchar(h)), h, " ")
 
         
-      } else 
-        stop(paste0("Title header exceeds available width.\n",
+      } else {
+        warning(paste0("Title header exceeds available width.\n",
                     "Title: ", t, "\n",
                     "Header: ", h, "\n",
                     "Title length: ", nchar(t), "\n",
                     "Header length: ", nchar(h), "\n",
                     "Line length: ", ll, "\n"))
+        
+        tgp <- ll - 3
+        if (tgp >= 0) {
+          
+          ln <- paste0(substr(paste0(stri_pad_right(t, ll - nchar(h)), h, " "), 
+                              1, tgp), "...")
+          
+        } else ln <- ""
+      }
       
       
       ret[length(ret) + 1] <- ln
     }
+    
+    if (any(title_hdr$borders %in% c("bottom", "all")) & 
+        length(title_hdr$titles) > 0)
+      ret[length(ret) + 1] <-  paste0(paste0(rep(uchar, ll), collapse = ""), " ")
     
     if (title_hdr$blank_row %in% c("below", "both") & 
         length(title_hdr$titles) > 0)
@@ -279,7 +321,7 @@ get_title_header <- function(title_hdr, width) {
 #' @param rs The report spec
 #' @return A vector of strings
 #' @noRd
-get_footnotes <- function(footnotes, width) {
+get_footnotes <- function(footnotes, width, uchar = "-") {
   
   if (is.null(width)) {
     stop("width cannot be null.") 
@@ -298,6 +340,10 @@ get_footnotes <- function(footnotes, width) {
       if (ftn$blank_row %in% c("above", "both") & length(ftn$footnotes) > 0)
         ret[length(ret) + 1] <- ""
       
+      if (any(ftn$borders %in% c("top", "all")) & length(ftn$footnotes) > 0)
+        ret[length(ret) + 1] <- paste0(paste0(rep(uchar, ll - 1), 
+                                              collapse = ""), " ")
+      
       for (i in seq_along(ftn$footnotes)) {
         
         f <- ftn$footnotes[i]
@@ -314,15 +360,33 @@ get_footnotes <- function(footnotes, width) {
           else if (ftn$align == "center" | ftn$align == "centre")
             ln <- stri_pad_both(f, ll)
           
-        } else 
-          stop(paste0("Footnote exceeds available width.",
+        } else {
+          warning(paste0("Footnote exceeds available width.",
                       "\nFootnote: ", f,
                       "\nFootnote length: ", nchar(f), 
                       "\nLine Length: ", ll))
+          
+          tln <- ll - 3
+          
+          if (tln >= 0) {
+            
+            if (ftn$align == "left") {
+              ln <- paste0(substr(stri_pad_right(f , ll), 1, tln), "...")
+            } else if (ftn$align == "right") {
+              ln <- paste0("...", substr(stri_pad_left(f, ll), 1, tln))
+            } else if (ftn$align == "center" | ftn$align == "centre") {
+              ln <- paste0(substr(stri_pad_both(f, ll), 1, tln), "...")
+            }
+          } else ln <- "" 
+        }
         
         
         ret[length(ret) + 1] <- ln
       }
+      
+      if (any(ftn$borders %in% c("bottom", "all")) & length(ftn$footnotes) > 0)
+        ret[length(ret) + 1] <- paste0(paste0(rep(uchar, ll - 1), 
+                                              collapse = ""), " ")
       
       if (ftn$blank_row %in% c("below", "both") & length(ftn$footnotes) > 0)
         ret[length(ret) + 1] <- ""
@@ -399,13 +463,16 @@ get_page_footer <- function(rs) {
         lw <- rs$line_size - nchar(fr) - nchar(fl)
         ln <- paste0(fl, stri_pad_both(fc, width = lw), fr)
       }
-      else
+      else {
+        
         stop(paste0("Page footer exceeds available width\n", 
                     "Footer Left: ", fl, "\n", 
                     "Footer Center: ", fc, "\n",
                     "Footer Right: ", fr, "\n",
                     "Footer length: ", nchar(fl) + nchar(fc) + nchar(fr), "\n",
                     "Line length: ", rs$line_size, "\n"))
+        ln <- ""
+      }
       
       ret[length(ret) + 1] <- ln
     }
