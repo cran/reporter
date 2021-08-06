@@ -38,7 +38,7 @@ create_table_pages_text <- function(rs, cntnt, lpg_rows) {
   
   
   # Set up control columns
-  dat <- as.data.frame(ts$data)  
+  dat <- as.data.frame(ts$data, stringsAsFactors = FALSE)  
   dat$..blank <- ""
   dat$..row <- NA
   dat$..page_by <- NA
@@ -169,8 +169,8 @@ create_table_pages_text <- function(rs, cntnt, lpg_rows) {
   # split rows
   splits <- get_splits_text(fdat, widths_uom, rs$body_line_count, 
                             lpg_rows, content_offset, ts)
-  # print("splits")
-  # print(splits)
+   # print("splits")
+   # print(splits)
   
   # Subset splits by preview, if requested
   if (!is.null(rs$preview)) {
@@ -245,7 +245,33 @@ create_table_text <- function(rs, ts, pi, content_blank_row, wrap_flag,
   else
     ttls <- get_titles(ts$titles, ls, rs$uchar) 
   
-  ftnts <- get_footnotes(ts$footnotes, ls, rs$uchar) 
+  ftnts <- c()
+  vflag <- FALSE
+  
+  # Deal with valign paramter
+  if (!is.null(ts$footnotes)) {
+    if (!is.null(ts$footnotes[[length(ts$footnotes)]])) {
+      if (ts$footnotes[[length(ts$footnotes)]]$valign == "bottom") {
+
+        vflag <- TRUE
+        ftnts <- get_footnotes(ts$footnotes, rs$line_size, rs$uchar) 
+      } else {
+        
+        ftnts <- get_footnotes(ts$footnotes, ls, rs$uchar) 
+      }
+    
+    }
+  } else {
+
+    if (!is.null(rs$footnotes[[1]])) {
+      if (!is.null(rs$footnotes[[1]]$valign)) {
+        if (rs$footnotes[[1]]$valign == "top") {
+
+          ftnts <- get_footnotes(rs$footnotes, rs$line_size, rs$uchar) 
+        } 
+      }
+    }
+  }
   #print("Titles")
   #print(ttls)
   
@@ -267,14 +293,34 @@ create_table_text <- function(rs, ts, pi, content_blank_row, wrap_flag,
   if (content_blank_row %in% c("below", "both"))
     b <- ""
   
-  ret <- c(a, ttls, pgby, shdrs, hdrs, rws, ftnts, b)
-  
   blnks <- c()
-  len_diff <- rs$body_line_count - lpg_rows - length(ret)
-  if (wrap_flag & len_diff > 0) {
-    blnks <- rep("", len_diff)
-    ret <- c(ret, blnks) 
+  if (vflag) {
+    ret <- c(a, ttls, pgby, shdrs, hdrs, rws, b)
+
+    len_diff <- rs$body_line_count - lpg_rows - length(ret) - length(ftnts)
+    
+    # At some point will have to deal with wrap flag
+    # Right now cannot put anything in between end of content
+    # and the start of the footnote.  Edge case but should still
+    # fix at some point.
+    if (len_diff > 0) {
+      blnks <- rep("", len_diff)
+      ret <- c(ret, blnks, ftnts) 
+    }
+      
+  } else { 
+    
+    ret <- c(a, ttls, pgby, shdrs, hdrs, rws, ftnts, b)
+    
+    len_diff <- rs$body_line_count - lpg_rows - length(ret)
+    if (wrap_flag & len_diff > 0) {
+      blnks <- rep("", len_diff)
+      ret <- c(ret, blnks) 
+    }
+    
   }
+  
+
   
   return(ret) 
 }
@@ -345,7 +391,7 @@ get_table_header <- function(rs, ts, pi) {
   ln <- c()
 
   # Wrap header labels if needed
-  d <- data.frame(as.list(lbls))
+  d <- data.frame(as.list(lbls), stringsAsFactors = FALSE)
   names(d) <- names(lbls)
   d <- split_cells(d, w)
   d <- push_down(d)
@@ -357,8 +403,8 @@ get_table_header <- function(rs, ts, pi) {
 
     for (nm in names(d)) {
       if (!is.control(nm))
-        r <- paste0(r, format(d[i, nm], width = w[[nm]],
-                            justify = get_justify(lbla[[nm]])), " ")
+        r <- paste0(r, pad_any(d[i, nm],  w[[nm]],
+                             get_justify(lbla[[nm]])), " ")
     }
     
     ln[[length(ln) + 1]] <- r 
@@ -366,10 +412,7 @@ get_table_header <- function(rs, ts, pi) {
   
   
   # Underline
-  if (rs$output_type == "PDF")
-    sep <- paste0(paste0(rep("-", nchar(r) - 1), collapse = ""), " ")
-  else
-    sep <- paste0(paste0(rep(rs$uchar, nchar(r) - 1), collapse = ""), " ")
+  sep <- paste0(paste0(rep(rs$uchar, nchar(r) - 1), collapse = ""), " ")
   
   ln[[length(ln) + 1]] <- sep
 
@@ -428,7 +471,8 @@ get_spanning_header <- function(rs, ts, pi) {
   # - Seed span_num with negative index numbers to identify unspanned columns
   # - Also add one to each column width for the blank space between columns 
   d <- data.frame(colname = cols, colwidth = w + 1, 
-                  span_num = seq(from = -1, to = -length(cols), by = -1))
+                  span_num = seq(from = -1, to = -length(cols), by = -1), 
+                  stringsAsFactors = FALSE)
   
   wlvl <- list()  # Create one data structure for each level
   for (l in lvls) {
@@ -502,7 +546,7 @@ get_spanning_header <- function(rs, ts, pi) {
     s <- wlvl[[l]]
     
     # Wrap header labels if needed
-    d <- data.frame(as.list(s$label))
+    d <- data.frame(as.list(s$label), stringsAsFactors = FALSE)
     w <- s$width
     j <- s$align
     names(d) <- s$name
@@ -528,11 +572,11 @@ get_spanning_header <- function(rs, ts, pi) {
         if (!is.control(nm)) {
 
           if (j[[nm]] == "right") # Adjust 1 space for right alignment
-            r <- paste0(r, format(d[i, nm], width = w[[nm]] -1,
-                                  justify = get_justify(j[[nm]])), " ")
+            r <- paste0(r, pad_any(d[i, nm], w[[nm]] -1,
+                                  get_justify(j[[nm]])), " ")
           else
-            r <- paste0(r, format(d[i, nm], width = w[[nm]],
-                                  justify = get_justify(j[[nm]])))
+            r <- paste0(r, pad_any(d[i, nm], w[[nm]],
+                                   get_justify(j[[nm]])))
           
 
         }
@@ -547,14 +591,12 @@ get_spanning_header <- function(rs, ts, pi) {
     for (i in seq_len(nrow(s))) {
 
       if (s$span[i] > 0) {
-        if (rs$output_type == "PDF")
-          r <- paste0(r, paste0(rep("-", s$width[i] - 1), collapse = ""), " ")
-        else {
-          if (s$underline[i])
-            r <- paste0(r, paste0(rep(rs$uchar, s$width[i] - 1), collapse = ""), " ")
-          else 
-            r <- paste0(r, paste0(rep(" ", s$width[i] - 1), collapse = ""), " ")
-        }
+
+        if (s$underline[i])
+          r <- paste0(r, paste0(rep(rs$uchar, s$width[i] - 1), collapse = ""), " ")
+        else 
+          r <- paste0(r, paste0(rep(" ", s$width[i] - 1), collapse = ""), " ")
+        
           
       } else {
         r <- paste0(r, paste0(rep(" ", s$width[i]), collapse = ""))

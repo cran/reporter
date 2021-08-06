@@ -1,14 +1,34 @@
+# reporter 1.1.3
+
+* Made package compatible back to R 3.6.
+* Added GitHub Actions for prior R version checks.
+* Figured out how to generate PDF files directly, instead of using 
+Latex/Rmarkdown/MikTex/Pandoc.  Will greatly reduce dependencies and make
+the **reporter** package much easier to install and test.  Also makes it much
+easier to accurately render the PDF file.
+* Allow user to add more than one `title header()`.
+* Made _output_type_ parameter case insensitive.
+* Added _standard_eval_ parameter to `define()`, `spanning_header()`,
+and `column_defaults()` functions.  These parameters will replace curly brace 
+escape on those functions.
+Curly brace escape will remain active for backward compatibility, but is 
+no longer documented.
+* Fixed bug in RTF that was causing page overflows in LibreOffice Writer.
+* Various other bug fixes.
+
+
 # reporter 1.1.2
 
 * Changed column width calculation to make sum of widths equal the total width of
 the table.  Previously it was excluding the column gutter from the calculation.
 * Removed error on title/footnote width being too long.  Changed to warning
 and truncated text instead, so the user can at least see what is going on.
-* Integrated logging functionality with logr package.  write_report() will
+* Integrated logging functionality with **logr** package.  `write_report()` will
 now log results automatically when logr autolog is enabled.
-* Added underline parameter to spanning_header to turn it on or off
+* Added _underline_ parameter to `spanning_header()` to turn it on or off
 * Added 8pt font
-* Added border property to titles, footnotes, and title_header functions
+* Added _border_ property to `titles()`, `footnotes()`, and `title_header()` 
+functions.
 * Added {{}} double curly escape on parameters accepting unquoted parameters, 
 so that users could pass them as variables inside a function.
 * Added pkgdown site
@@ -17,7 +37,7 @@ so that users could pass them as variables inside a function.
 
 # reporter 1.0.6
 
-* Added support for survminer graphics in create_plot()
+* Added support for **survminer** graphics in `create_plot()`.
 
 # reporter 1.0.5
 

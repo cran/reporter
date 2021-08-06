@@ -13,7 +13,7 @@ test_that("create_report sets default values appropriately", {
 
 test_that("create_report changes parameters appropriately", {
   
-  ret <- create_report(output_type = "TXT", orientation = "portrait")
+  ret <- create_report(output_type = "txt", orientation = "portrait")
   
   expect_equal(ret$orientation, "portrait")
   expect_equal(ret$output_type, "TXT")
@@ -25,7 +25,7 @@ test_that("create_report changes parameters appropriately", {
 test_that("create_report traps invalid parameters", {
   
   expect_error(create_report(orientation = "porait"))
-  expect_error(create_report(output_type = "txt"))
+  expect_error(create_report(output_type = "text"))
   
   
 })
@@ -57,7 +57,7 @@ test_that("options_fixed traps invalid parameters appropriately", {
   
   ret <- create_report()
   
-  expect_error(options_fixed(ret, cpuom = 15))
+  expect_error(options_fixed(ret, cpuom = 16))
   
   
 })
@@ -168,10 +168,10 @@ test_that("title_header function works as expected.", {
   th <- tbl %>% title_header("Table 1.0", "MTCARS Sample Data",
                              right = c("One", "Two"), blank_row = "below")
   
-  expect_equal(is.null(th$title_hdr), FALSE)
-  expect_equal(length(th$title_hdr$titles), 2)
-  expect_equal(length(th$title_hdr$right), 2)
-  expect_equal(th$title_hdr$blank_row, "below")
+  expect_equal(is.null(th$title_hdr[[1]]), FALSE)
+  expect_equal(length(th$title_hdr[[1]]$titles), 2)
+  expect_equal(length(th$title_hdr[[1]]$right), 2)
+  expect_equal(th$title_hdr[[1]]$blank_row, "below")
 
   
 })
