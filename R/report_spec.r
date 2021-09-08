@@ -130,13 +130,11 @@
 #' #      * New York, May to September 1973
 #' @export
 create_report <- function(file_path = "", output_type = "TXT", 
-                          # report_type = "tabular" or "flat", 
-                          # font_type = "fixed" or "variable" 
-                          # tabular = TRUE
                           orientation ="landscape", units = "inches",
-                          paper_size = "letter", missing = "") {
-  # Force for now
-  font_type <- "fixed"
+                          paper_size = "letter", missing = "") {#,
+                         # font = "fixed", font_size = NULL) {
+  font = "fixed"
+  font_size = NULL
 
   x <- structure(list(), class = c("report_spec", "list"))
 
@@ -183,12 +181,20 @@ create_report <- function(file_path = "", output_type = "TXT",
                 "'\n\tValid values are: 'letter', 'legal', 'A4', 'RD4'."))
   }
   
-  # Trap missing or invalid font_type parameter
-  if (is.null(font_type))
-    stop("font_type parameter cannot be null.")
+  # Trap missing or invalid font parameter
+  if (is.null(font))
+    font <- "fixed"
   else {
-    if (!font_type %in% c("fixed", "variable"))
-      stop("font_type value invalid.  Valid values are 'fixed' and 'variable'.")
+    if (!tolower(font) %in% c("fixed", "courier", "arial", "times"))
+      stop(paste0("font value invalid.  ", 
+                  "Valid values are 'Courier', 'Arial', 'Times', and 'fixed'."))
+  }
+  
+  # Trap invalid font_size parameter
+  if (!is.null(font_size)) {
+    if (!font_size %in% c(8, 10, 12)) {
+      stop("font_size parameter invalid.  Valid values are 8, 10, and 12.") 
+    }
   }
     
   # Populate report_spec fields
@@ -202,7 +208,8 @@ create_report <- function(file_path = "", output_type = "TXT",
   x$pages <- 0                  # Track # of pages in report
   x$column_widths <- list()      # Capture table column widths for reference
   x$missing <- missing
-  x$font_type <- font_type #font_type      # For future use.  Not used now.
+  x$font <- font      
+  x$font_size <- font_size
 
   
   if (output_type %in% c("TXT", "PDF", "RTF")) {
@@ -252,23 +259,24 @@ create_report <- function(file_path = "", output_type = "TXT",
 #' # Here is an example
 #' # This function commented out for now, until variable width fonts are available.
 #' @noRd  
-options_variable <- function(x, font_name="Courier New", font_size=10) {
-  
-  # Trap missing or invalid font_name parameter.
-  if (!font_name %in% c("Courier New", "Times New Roman", "Arial", "Calibri")) {
-    
-    stop(paste0("font_name parameter on create_report() ",
-                "function is invalid: '", font_name,
-                "'\n\tValid values are: 'Arial', 'Calibri', 'Courier New', ",
-                "and 'Times New Roman'."))
-  }
-  
-  x$font_size <-font_size
-  x$font_name <- font_name
-  x$font_family <- get_font_family(font_name)
-  
-  return(x)
-}
+NULL
+# options_variable <- function(x, font_name="Courier New", font_size=10) {
+#   
+#   # Trap missing or invalid font_name parameter.
+#   if (!font_name %in% c("Courier New", "Times New Roman", "Arial", "Calibri")) {
+#     
+#     stop(paste0("font_name parameter on create_report() ",
+#                 "function is invalid: '", font_name,
+#                 "'\n\tValid values are: 'Arial', 'Calibri', 'Courier New', ",
+#                 "and 'Times New Roman'."))
+#   }
+#   
+#   x$font_size <-font_size
+#   x$font_name <- font_name
+#   x$font_family <- get_font_family(font_name)
+#   
+#   return(x)
+# }
 
 
 #' @description This is a lookup table to get standard settings for various 
@@ -284,7 +292,7 @@ editor_settings <- read.table(header = TRUE, text = '
                     pdf12            12     4.70       5    2.000  .1967     .5
                     pdf10       14.2222     5.58    6.10      2.4  .1967     .5
                     pdf8           17.5     6.88    7.55     2.95  .1967     .5
-                    rtf12            10   3.9473     5.4     2.05      0      0
+                    rtf12            10   3.9473     5.3     2.05      0      0
                     rtf10            12   4.7619    6.38      2.5      0      0
                     rtf8             15      5.9    7.95     3.05      0      0
                                ') 
@@ -463,9 +471,16 @@ editor_settings <- read.table(header = TRUE, text = '
 #' @export
 options_fixed <- function(x, editor = NULL, cpuom = NULL, lpuom = NULL,
                           min_margin = NULL, blank_margins = FALSE,
-                          font_size = 10, line_size = NULL, line_count = NULL,
+                          font_size = NULL, line_size = NULL, line_count = NULL,
                           uchar = "\U00AF") {
   
+  # Set font_size defaults
+  if (is.null(x$font_size) & is.null(font_size)) {
+    font_size <- 10
+  } else if (!is.null(x$font_size) & is.null(font_size)) {
+    font_size <- x$font_size
+  }
+
   if (!"report_spec" %in% class(x)) {
     stop("Input object must be of class 'report_spec'.") 
   }
@@ -640,8 +655,8 @@ options_fixed <- function(x, editor = NULL, cpuom = NULL, lpuom = NULL,
     if (line_count <= 0)
       stop("line_count must be greater than zero.")
   }
-  
-  x$font_size = font_size
+
+  x$font_size <- font_size
   x$char_width <- 1 / x$cpuom
   x$line_height <- 1 / x$lpuom
   x$user_line_size <- line_size
@@ -763,8 +778,8 @@ set_margins <- function(x, top=NULL, bottom=NULL,
       x$margin_top <- .5 
     else if (x$units == "cm")
       x$margin_top <- 1.27
-    else if (x$units == "char")
-      x$margin_top <- set_char_margins(x, "top")
+    # else if (x$units == "char")
+    #   x$margin_top <- set_char_margins(x, "top")
   }
   
   if (!is.null(bottom)) {
@@ -779,8 +794,8 @@ set_margins <- function(x, top=NULL, bottom=NULL,
       x$margin_bottom <- .5 
     else if (x$units == "cm")
       x$margin_bottom <- 1.27
-    else if (x$units == "char")
-      x$margin_bottom <- set_char_margins(x, "bottom")
+    # else if (x$units == "char")
+    #   x$margin_bottom <- set_char_margins(x, "bottom")
   }
   
   if (!is.null(left)) {
@@ -795,8 +810,8 @@ set_margins <- function(x, top=NULL, bottom=NULL,
       x$margin_left <-  1 
     else if (x$units == "cm")
       x$margin_left <- 2.54
-    else if (x$units == "char")
-      x$margin_left <- set_char_margins(x, "left")
+    # else if (x$units == "char")
+    #   x$margin_left <- set_char_margins(x, "left")
     
   }
   
@@ -812,41 +827,42 @@ set_margins <- function(x, top=NULL, bottom=NULL,
       x$margin_right <- 1 
     else if (x$units == "cm")
       x$margin_right <- 2.54
-    else if (x$units == "char")
-      x$margin_right <- set_char_margins(x, "right")
+    # else if (x$units == "char")
+    #   x$margin_right <- set_char_margins(x, "right")
   }
 
 
   return(x)
 }
 
-#' @noRd
-set_char_margins <- function(rs, margin) {
-  
-  ret <- NULL
-  if (!is.null(rs$font_size)) {
-    if (rs$font_size == 8) {
-      if (margin %in% c("right", "left"))
-        ret <- 15
-      else if (margin %in% c("top", "bottom"))
-        ret <- 4
-    }  
-    if (rs$font_size == 10) {
-      if (margin %in% c("right", "left"))
-        ret <- 12
-      else if (margin %in% c("top", "bottom"))
-        ret <- 3
-    }  
-    if (rs$font_size == 12) {
-      if (margin %in% c("right", "left"))
-        ret <- 10
-      else if (margin %in% c("top", "bottom"))
-        ret <- 3
-    }  
-  }
-  
-  return(ret)
-}
+# Not used now.  May be used in future.
+# @noRd
+# set_char_margins <- function(rs, margin) {
+#   
+#   ret <- NULL
+#   if (!is.null(rs$font_size)) {
+#     if (rs$font_size == 8) {
+#       if (margin %in% c("right", "left"))
+#         ret <- 15
+#       else if (margin %in% c("top", "bottom"))
+#         ret <- 4
+#     }  
+#     if (rs$font_size == 10) {
+#       if (margin %in% c("right", "left"))
+#         ret <- 12
+#       else if (margin %in% c("top", "bottom"))
+#         ret <- 3
+#     }  
+#     if (rs$font_size == 12) {
+#       if (margin %in% c("right", "left"))
+#         ret <- 10
+#       else if (margin %in% c("top", "bottom"))
+#         ret <- 3
+#     }  
+#   }
+#   
+#   return(ret)
+# }
 
 # Page Template Items -----------------------------------------------
 
@@ -1951,7 +1967,10 @@ write_report <- function(x, file_path = NULL,
     
   } else if (x$output_type == "RTF") {
     
-    ret <- write_report_rtf(x)
+    if (tolower(x$font) == "fixed")
+      ret <- write_report_rtf(x)
+    else 
+      ret <- write_report_rtf2(x)
   
   } else if (x$output_type == "PDF") {
     
