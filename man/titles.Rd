@@ -4,7 +4,14 @@
 \alias{titles}
 \title{Adds a title block}
 \usage{
-titles(x, ..., align = "center", blank_row = "below", borders = "none")
+titles(
+  x,
+  ...,
+  align = "center",
+  blank_row = "below",
+  borders = "none",
+  width = NULL
+)
 }
 \arguments{
 \item{x}{The object to assign titles to.  Valid objects are a report, or
@@ -19,7 +26,23 @@ a table, text, or plot specification.}
 'below', 'both', or 'none'.  Default is "below".}
 
 \item{borders}{Whether and where to place a border. Valid values are 'top',
-'bottom', 'all', or 'none'.  Default is "none".}
+'bottom', 'left', 'right', 'outside', 'inside', 'all', or 'none'.  
+Default is "none".  
+The 'left', 'right', 'outside', and 'inside' border specifications 
+only apply to RTF reports.}
+
+\item{width}{The width of the titles block.  If the titles are attached
+to the report, valid values are 'page' or a numeric width, and the default
+is 'page'. If the titles are attached to the
+table, plot, or text content, the valid values are 'page', 'content' or a 
+numeric value, and the default is 'content'.  The value 'content' means the 
+titles will be aligned to the width of the table, plot, or text
+content.  The value
+'page' means the titles will be aligned to the width of the page. 
+In addition to these two convenience settings, you 
+may also specify a specific width in the current units of measure.  The
+units of measure is determined by the 'units' parameter on 
+\code{\link{create_report}}.}
 }
 \value{
 The modified report.
@@ -58,7 +81,8 @@ Blank rows above or below the title block may be controlled using the
 \code{blank_row} parameter.
 
 Each title string must fit within the available space.  The \strong{reporter}
-package will not wrap titles.  If a title does not fit within the 
+package will not wrap titles on fixed-width reports.  
+If a title does not fit within the 
 available space, a warning will be generated and the title will be 
 truncated.  In these situations, either
 shorten the title or split it into multiple titles that each fit within the
