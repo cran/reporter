@@ -21,7 +21,7 @@ fsz <- 10
 dev <- FALSE
 
 
-# Basic Tests -------------------------------------------------------------
+# Basic Tests 1 - 10 ------------------------------------------------------
 
 
 test_that("rtf2-0a: Fixed report is correct.", {
@@ -104,11 +104,11 @@ test_that("rtf2-1: One page text spec works as expected.", {
   fp <- file.path(base_path, "rtf2/test1.rtf")
 
   txt <- create_text(cnt, width = 6, borders = "outside", align = "right") %>%
-    titles("Text 1.0", "My Nice Text", borders = "outside") %>%
+    titles("Text 1.0", "My Nice Text", borders = "outside", font_size = 12) %>%
     footnotes("My footnote 1", "My footnote 2", borders = "outside")
 
   rpt <- create_report(fp, output_type = "RTF", font = fnt,
-                       font_size = fsz) %>%
+                       font_size = 10) %>%
     set_margins(top = 1, bottom = 1) %>%
     page_header("Left", "Right") %>%
     add_content(txt, align = "right") %>%
@@ -244,7 +244,7 @@ test_that("rtf2-6: One page table works as expected.", {
                        font_size = fsz, orientation = "landscape") %>%
     set_margins(top = 1, bottom = 1) %>%
     page_header("Left", c("Right1", "Right2", "Page [pg] of [tpg]"), blank_row = "below") %>%
-    titles("Table 1.0", "My Nice Table", borders = "outside") %>%
+    titles("Table 1.0", "My Nice Table", borders = "outside", bold = TRUE) %>%
     add_content(create_table(dat, borders = "outside")) %>%
     footnotes("My footnote 1", "My footnote 2", borders = "outside") %>%
     page_footer("Left1", "Center1", "Right1")
@@ -375,6 +375,8 @@ test_that("rtf2-10: Preview works as expected.", {
   
   
 })
+
+# Basic Tests 11 - 20 ------------------------------------------------------
 
 # This is awesome. Shows cell wrapping, page break, and valign
 # Very good for testing.
@@ -516,7 +518,7 @@ test_that("rtf2-15: Valign on report footnotes works as expected.", {
     define(Species, page_break = TRUE)
   
   rpt <- create_report(fp, output_type = "RTF", font = "Arial",
-                       font_size = fsz, orientation = "landscape") %>%
+                       font_size = 9, orientation = "portrait") %>%
     set_margins(top = 1, bottom = 1) %>%
     page_header("Left", c("Right1", "Right2", "Right3"), blank_row = "below") %>%
     titles("Table 1.0", "My Nice Table") %>%
@@ -692,6 +694,8 @@ test_that("rtf2-20: Title Header borders work as expected.", {
   
   
 })
+
+# Basic Tests 21 - 30 ------------------------------------------------------
 
 # Works unless drat column is too narrow and spanning label wraps unexpectedly
 test_that("rtf2-21: Page wrap with spanning header works as expected.", {
@@ -893,7 +897,7 @@ test_that("rtf2-26: RTF Table with Plot on same page works as expected.", {
 })
 
 
-# Works but putting filler pars where it is not necessary
+
 test_that("rtf2-27: Plot with page by on plot works as expected.", {
   
   library(ggplot2)
@@ -1032,6 +1036,8 @@ test_that("rtf2-30: Simplest RTF Plot with valign bottom works as expected.", {
   
   
 })
+
+# Basic Tests 31 - 40 ------------------------------------------------------
 
 test_that("rtf2-31: Simplest RTF Text with valign top works as expected.", {
   
@@ -1372,6 +1378,8 @@ test_that("rtf2-40: One page table works as expected in courier.", {
   
 })
 
+# Basic Tests 41 - 50 ------------------------------------------------------
+
 # Good for testing borders and spacing are working correctly
 test_that("rtf2-41: Page by with borders works as expected.", {
   
@@ -1485,6 +1493,158 @@ test_that("rtf2-43: use_attributes parameter table works as expected.", {
   
 })
 
+test_that("rtf2-45: Title bold and font size works as expected.", {
+  
+  
+  fp <- file.path(base_path, "rtf2/test45.rtf")
+  
+  dat <- mtcars[1:15, ]
+  attr(dat[[2]], "label") <- "Cylin."
+  attr(dat[[2]], "width") <- 1
+  attr(dat[[2]], "justify") <- "center"
+  
+  tbl <- create_table(dat, borders = "outside") %>%
+    titles("Table 1.0", "My Nice Table", borders = c("none"), 
+           width = "content", font_size = 14, bold = TRUE) %>%
+    footnotes("My footnote 1", "My footnote 2", borders = "none", 
+              align = "left", width = "content") %>% 
+    define(wt, width = 1, label = "Weight", align = "center", 
+           label_align = "right")
+  
+  rpt <- create_report(fp, output_type = "RTF", font = "Arial",
+                       font_size = 9, orientation = "landscape") %>%
+    set_margins(top = 1, bottom = 1) %>%
+    page_header("Left", c("Right1", "Right2", "Page [pg] of [tpg]"), 
+                blank_row = "below") %>% 
+    add_content(tbl, align = "center")  %>% 
+    page_footer("Left1", "Center1", "Right1")
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  expect_equal(res$pages, 1)
+  
+})
+
+
+
+test_that("rtf2-46: 9 pt font inches works as expected.", {
+  
+  
+  fp <- file.path(base_path, "rtf2/test46.rtf")
+  
+  rpt <- create_report(fp, output_type = "RTF", font_size = 9, 
+                       font = "Courier",
+                       orientation = "portrait") %>%
+    page_header("left", "right") %>%
+    titles("IRIS Data Frame") %>%
+    add_content(create_table(iris)) %>%
+    page_footer("left", "center", "Page [pg] of [tpg]") %>% 
+    set_margins(top = 1, bottom = 1)
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+
+})
+
+test_that("rtf2-47: 9 pt font cm works as expected.", {
+  
+  
+  fp <- file.path(base_path, "rtf2/test47.rtf")
+  
+  rpt <- create_report(fp, output_type = "RTF", font_size = 9, 
+                       font = "Courier",
+                       orientation = "portrait") %>%
+    page_header("left", "right") %>%
+    titles("IRIS Data Frame") %>%
+    add_content(create_table(iris)) %>%
+    page_footer("left", "center", "Page [pg] of [tpg]") %>% 
+    set_margins(top = 1, bottom = 1)
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+
+})
+
+test_that("rtf2-48: 11 pt font inches works as expected.", {
+  
+  
+  fp <- file.path(base_path, "rtf2/test48.rtf")
+  
+  rpt <- create_report(fp, output_type = "RTF", font_size = 11, 
+                       font = "Courier",
+                       orientation = "portrait") %>%
+    page_header("left", "right") %>%
+    titles("IRIS Data Frame") %>%
+    add_content(create_table(iris)) %>%
+    page_footer("left", "center", "Page [pg] of [tpg]") %>% 
+    set_margins(top = 1, bottom = 1)
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+
+})
+
+test_that("rtf2-49: 11 pt font cm works as expected.", {
+  
+  
+  fp <- file.path(base_path, "rtf2/test49.rtf")
+  
+  rpt <- create_report(fp, output_type = "RTF", font_size = 11, 
+                       font = "Courier",
+                       orientation = "portrait") %>%
+    page_header("left", "right") %>%
+    titles("IRIS Data Frame") %>%
+    add_content(create_table(iris)) %>%
+    page_footer("left", "center", "Page [pg] of [tpg]") %>% 
+    set_margins(top = 1, bottom = 1)
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+
+})
+
+test_that("rtf2-50: Spanning headers borders work as expected.", {
+  
+  
+  fp <- file.path(base_path, "rtf2/test50.rtf")
+  
+  dat <- mtcars[1:15, ]
+  
+  tbl <- create_table(dat, borders = c("body")) %>%
+    spanning_header(cyl, disp, "Span 1", label_align = "left") %>% 
+    spanning_header(hp, wt, "Span 2", underline = FALSE) %>%
+    spanning_header(qsec, vs, "Span 3", n = 10) %>%
+    spanning_header(drat, gear, "Super Duper\nWrapped Span", n = 11, level = 2) %>% 
+    titles("Table 1.0", "My Nice Table", borders = "outside") %>%
+    footnotes("My footnote 1", "My footnote 2", borders = "outside") 
+  
+  rpt <- create_report(fp, output_type = "RTF", font = fnt,
+                       font_size = fsz, orientation = "landscape") %>%
+    set_margins(top = 1, bottom = 1) %>%
+    add_content(tbl)
+
+  
+  res <- write_report(rpt)
+  res
+  res$column_widths
+  
+  expect_equal(file.exists(fp), TRUE)
+  expect_equal(res$pages, 1)
+  
+})
 
 # User Tests --------------------------------------------------------------
 
@@ -1883,6 +2043,8 @@ test_that("user4: listing in cm and times works.", {
     
     #Write out report
     res <- write_report(rpt, output_type = "RTF")
+    
+    print(res$column_widths)
     
     expect_equal(file.exists(fp), TRUE)
     

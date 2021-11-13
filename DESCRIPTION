@@ -1,7 +1,7 @@
 Package: reporter
 Type: Package
 Title: Creates Statistical Reports
-Version: 1.2.0
+Version: 1.2.6
 Authors@R: c( 
     person("David", "Bosak", email = "dbosak01@gmail.com", role = c("aut", "cre")),
     person("Kevin", "Kramer", role = "ctb"),
@@ -12,7 +12,7 @@ Description: Contains functions to create regulatory-style statistical reports.
     Originally designed to create tables, listings, and figures for the 
     pharmaceutical, biotechnology, and medical device industries, these
     reports are generalized enough that they could be used in any industry.
-    Generates text, rich-text, and PDF file formats.  The package specializes 
+    Generates text, rich-text, PDF and HTML file formats.  The package specializes 
     in printing wide and long tables with automatic page wrapping and splitting.  
     Reports can be produced with a minimum of function calls, and without 
     relying on other table packages.  The package supports titles, footnotes, 
@@ -29,9 +29,9 @@ Imports: fmtr, stringi, crayon, jpeg, graphics, grDevices
 RoxygenNote: 7.1.2
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2021-10-10 02:48:32 UTC; dbosa
+Packaged: 2021-11-13 00:07:20 UTC; dbosa
 Author: David Bosak [aut, cre],
   Kevin Kramer [ctb],
   Archytas Clinical Solutions [cph]
 Repository: CRAN
-Date/Publication: 2021-10-10 04:50:02 UTC
+Date/Publication: 2021-11-13 05:30:02 UTC

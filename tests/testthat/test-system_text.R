@@ -414,12 +414,13 @@ test_that("text16: Two page text spec with titles and footnotes.", {
   
   res <- write_report(rpt)
   
-  expect_equal(file.exists(fp), TRUE)
+  expect_equal(file.exists(res$modified_path), TRUE)
   
-  lns <- readLines(fp)
+  lns <- readLines(res$modified_path)
   
   expect_equal(length(lns), res$pages * res$line_count)
   
   
 })
+
 
