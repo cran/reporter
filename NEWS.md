@@ -1,3 +1,9 @@
+# reporter 1.2.8
+
+* Added Arial, Times, and Courier fonts to PDF output type.  
+* Fixed bug on RTF preventing _first_row_blank_ parameter from working properly.
+* Added FAQ and Complete Examples.
+
 # reporter 1.2.6
 
 * Added 'HTML' output type to `create_report()` and `write_report()` functions.
@@ -31,7 +37,7 @@ functions.
 # reporter 1.1.6
 
 * Added support for covr and codecov.
-* Fixed overflow bug on RTF on Windows when using 12pt font.
+* Fixed overflow bug on RTF on Linux when using 12pt font.
 * Fixed line length/alignment issues on titles and footnotes.
 
 # reporter 1.1.3

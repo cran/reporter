@@ -101,7 +101,7 @@ writeLines(readLines(tmp, encoding = "UTF-8"))
 #                        MTCARS Sample Data
 # 
 #          mpg cyl  disp  hp drat    wt  qsec vs am gear carb
-#         ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+#         ---------------------------------------------------
 #           21   6   160 110  3.9  2.62 16.46  0  1    4    4
 #           21   6   160 110  3.9 2.875 17.02  0  1    4    4
 #         22.8   4   108  93 3.85  2.32 18.61  1  1    4    1
@@ -143,5 +143,10 @@ list of examples:
 * [Example 7: Page By](reporter-pageby.html)
 * [Example 8: Title Header](reporter-title_header.html)
 * [Example 9: RTF, PDF, and HTML](reporter-rtf.html)
-* [Example 10: Figure](reporter-figure.html)
+* [Complete Example 1: Listing](reporter-example1.html)
+* [Complete Example 2: Demographics](reporter-example2.html)
+* [Complete Example 3: Adverse Events](reporter-example3.html)
+* [Complete Example 4: Figure](reporter-example4.html)
+* [Complete Example 5: Survival Analysis](reporter-example5.html)
+
 
