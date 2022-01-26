@@ -1,7 +1,7 @@
 Package: reporter
 Type: Package
 Title: Creates Statistical Reports
-Version: 1.2.8
+Version: 1.2.9
 Authors@R: c( 
     person("David", "Bosak", email = "dbosak01@gmail.com", role = c("aut", "cre")),
     person("Kevin", "Kramer", role = "ctb"),
@@ -29,9 +29,9 @@ Imports: fmtr, stringi, crayon, jpeg, graphics, grDevices
 RoxygenNote: 7.1.2
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2021-12-10 15:23:01 UTC; dbosa
+Packaged: 2022-01-26 01:45:48 UTC; dbosa
 Author: David Bosak [aut, cre],
   Kevin Kramer [ctb],
   Archytas Clinical Solutions [cph]
 Repository: CRAN
-Date/Publication: 2021-12-10 16:00:02 UTC
+Date/Publication: 2022-01-26 17:12:42 UTC

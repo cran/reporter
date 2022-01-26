@@ -326,9 +326,10 @@ test_that("pdf2-6: One page table works as expected.", {
                        units = "inches") %>%
     set_margins(top = 1, bottom = 1) %>%
     page_header("Left", c("Right1", "Right2", "Page [pg] of [tpg]"), blank_row = "below") %>%
-    titles("Table 1.0", "My Nice Table", borders = "outside", bold = TRUE) %>%
+    titles("Table 1.0", "My Nice Table", borders = "top", bold = TRUE) %>%
     add_content(create_table(dat, borders = "outside")) %>%
-    footnotes("My footnote 1", "My footnote 2", borders = "outside") %>%
+    footnotes("My footnote 1", "My footnote 2", borders = c("top", "bottom"), 
+              blank_row = "above", valign = "bottom") %>%
     page_footer("Left1", "Center1", "Right1", blank_row = "above")
 
   res <- write_report(rpt)
@@ -503,8 +504,8 @@ test_that("pdf2-12: Table Borders work as expected.", {
   tbl <- create_table(dat, borders = c("all")) %>%
     define(mpg, label = "Miles Per Gallon") %>% 
     titles("Table 1.0", "My Nice Table", 
-           borders = "all", blank_row = "above", width = "content") %>% 
-    footnotes("My footnote 1", "My footnote 2", borders = "all")
+           borders = "outside", blank_row = "above", width = "content") %>% 
+    footnotes("My footnote 1", "My footnote 2", borders = "outside")
 
   rpt <- create_report(fp, output_type = "PDF", font = fnt,
                        font_size = 12, orientation = "landscape") %>%
@@ -724,12 +725,12 @@ test_that("pdf2-19: Title and Footnote borders work as expected.", {
 
   tbl <- create_table(dat, borders = c("all"), first_row_blank = FALSE) %>%
     titles("Tableg 1.0", "My Nice Report with Borders", 
-           "A third titleg what happens when it wraps around I want to know what happens will it work",
-           borders = "all", #c("top", "bottom"), #c("top", "bottom", "left", "right"),
-           blank_row = "none", align = "right", font_size = 10) %>%
+          # "A third titleg what happens when it wraps around I want to know what happens will it work",
+           borders = "outside", #c("top", "bottom"), #c("top", "bottom", "left", "right"),
+           blank_row = "both", align = "left", font_size = 10) %>%
     #titles("Just to mess it up", borders = "outside", blank_row = "both") %>% 
     footnotes("My footnote 1", "My footnote 2", 
-              "A third footnoteg what happens when it wraps around I want to know what happens will it work",
+             # "A third footnoteg what happens when it wraps around I want to know what happens will it work",
               valign = "top", align = "right",
               borders = "all", #c("top", "bottom", "left", "right"),
               blank_row = "none")
@@ -762,19 +763,20 @@ test_that("pdf2-20: Title Header borders work as expected.", {
 
   tbl <- create_table(dat, borders = "all") %>%
     title_header("Table 1.0", 
-                 "My Nice Report with Borders that keep going and going",
-                 right = c("R i g h t 1 a b c d e f", "Right2", "Right3"),
-                 borders = c("all"),
-                 blank_row = "above") %>%
+                 "My Nice Report with Borders ", # that keep going and going
+                 right = c("Right2", "Right3"),
+                 borders = c("outside"),
+                 blank_row = "none") %>%
     footnotes("My footnote 1", "My footnote 2", valign = "top",
               borders = c("top", "bottom", "left", "right"),
-              blank_row = "above")
+              blank_row = "none")
 
   rpt <- create_report(fp, output_type = "PDF", font = fnt,
                        font_size = fsz, orientation = "landscape") %>%
     set_margins(top = 1, bottom = 1) %>%
     options_fixed(line_size = 40) %>% 
-    add_content(tbl) %>%
+    add_content(tbl, align = "right") %>%
+    page_header("Left", "Right") %>%
     page_footer("Left1", "Center1", "Right1")
 
   res <- write_report(rpt)
@@ -841,10 +843,11 @@ test_that("pdf2-22: Page by works as expected.", {
 
   dat <- iris
 
-  tbl <- create_table(dat, borders = "none") %>%
-    titles("Table 1.0", "My Nice Report with a Page By", borders = "none") %>%
-    page_by(Species, label = "Species", align = "center", borders = "none", 
-            blank_row = "below")
+  tbl <- create_table(dat, borders = "all") %>%
+    titles("Table 1.0", "My Nice Report with a Page By", borders = "all", 
+           blank_row = "none") %>%
+    page_by(Species, label = "Species", align = "center", borders = "all", 
+            blank_row = "none")
 
   rpt <- create_report(fp, output_type = "PDF", font = fnt,
                        font_size = fsz, orientation = "landscape") %>%
@@ -861,7 +864,7 @@ test_that("pdf2-22: Page by works as expected.", {
   res$column_widths
 
   expect_equal(file.exists(fp), TRUE)
-  expect_equal(res$pages, 6)
+  expect_equal(res$pages, 7)
   expect_equal(length(res$column_widths[[1]]), 5)
 
 
@@ -942,8 +945,8 @@ test_that("pdf2-25: Simplest PDF2 Plot works as expected.", {
   
     plt <- create_plot(p, height = 4, width = 8, borders = c("top", "bottom", "all")) %>%
       titles("Figure 1.0", "MTCARS Miles per Cylinder Plot", 
-             borders = "all", blank_row = "below") %>%
-      footnotes("* Motor Trend, 1974", borders = "all", blank_row = "above", 
+             borders = "outside", blank_row = "none") %>% #, font_size = 12, bold = TRUE) %>%
+      footnotes("* Motor Trend, 1974", borders = "outside", blank_row = "above", 
                 valign = "top", width = "content", align = "center")
   
   
@@ -1029,15 +1032,16 @@ test_that("pdf2-27: Plot with page by on plot works as expected.", {
     #dats <- split(p$data, p$data$grp)
     #tbl <- create_table(dat[1:3, ])
   
-    plt <- create_plot(p, height = 4, width = 8) %>%
-      titles("Figure 1.0", "MTCARS Miles per Cylinder Plot", blank_row = "none") %>%
-      page_by(cyl, "Cylinders: ", blank_row = "below") %>%
-      footnotes("* Motor Trend, 1974")
+    plt <- create_plot(p, height = 4, width = 8, borders = "all") %>%
+      titles("Figure 1.0", "MTCARS Miles per Cylinder Plot", blank_row = "none",
+             borders = "all") %>%
+      page_by(cyl, "Cylinders2: ", blank_row = "below", borders = "all") %>%
+      footnotes("* Motor Trend, 1974", borders = "all")
   
     rpt <- create_report(fp, output_type = "PDF", font = fnt, font_size = fsz) %>%
       page_header("Client", "Study: XYZ") %>%
       set_margins(top = 1, bottom = 1) %>%
-      add_content(plt) %>%
+      add_content(plt, align = "center") %>%
       page_footer("Time", "Confidential", "Page [pg] of [tpg]")
   
   
@@ -1140,7 +1144,7 @@ test_that("pdf2-29: Simplest Plot with valign top works as expected.", {
 
 
 
-test_that("pdf2-30: Simplest RTF Plot with valign bottom works as expected.", {
+test_that("pdf2-30: Simplest PDF Plot with valign bottom works as expected.", {
 
   library(ggplot2)
 
@@ -1177,15 +1181,18 @@ test_that("pdf2-31: Simplest PDF with valign top works as expected.", {
 
   fp <- file.path(base_path, "pdf2/test31.pdf")
 
-  txt <- create_text(cnt, width = 6, borders = "outside")
+  txt <- create_text(cnt, width = 6, borders = "none") %>%
+    titles("Text 1.0", "MTCARS Miles per Cylinder Text", 
+           borders = "none", blank_row = "none") %>%
+    footnotes("* Motor Trend, 1974", valign = "top", borders = "none",
+              blank_row = "none")
 
 
   rpt <- create_report(fp, output_type = "PDF", font = fnt, font_size = fsz) %>%
     page_header("Client", "Study: XYZ") %>%
-    titles("Text 1.0", "MTCARS Miles per Cylinder Text", borders = "outside") %>%
+
     set_margins(top = 1, bottom = 1) %>%
     add_content(txt, align = "center") %>%
-    footnotes("* Motor Trend, 1974", valign = "top", borders = "outside") %>%
     page_footer("Time", "Confidential", "Page [pg] of [tpg]")
 
 
@@ -1244,10 +1251,10 @@ test_that("pdf2-33: Table with long cell and label values wraps as expected.", {
 
 
   # Create data frame
-  df <- data.frame(arm, subjid, name, sex, age, stringsAsFactors = FALSE)
+  df1 <- data.frame(arm, subjid, name, sex, age, stringsAsFactors = FALSE)
 
 
-  tbl1 <- create_table(df, first_row_blank = TRUE, borders = "all") %>%
+  tbl1 <- create_table(df1, first_row_blank = FALSE, borders = "all") %>%
     define(subjid, label = "Subject ID for a patient", n = 10, align = "left",
            width = 1) %>%
     define(name, label = "Subject Name", width = 1) %>%
@@ -1256,13 +1263,12 @@ test_that("pdf2-33: Table with long cell and label values wraps as expected.", {
     define(arm, label = "Arm",
            blank_after = TRUE,
            dedupe = TRUE) %>% 
+    titles("Table 1.0", align = "center", borders = "all") %>%
     footnotes("Here", borders = "all") 
 
 
   rpt <- create_report(fp, output_type = "PDF", font = "Courier",
                        font_size = fsz) %>%
-    titles("Table 1.0", align = "center") %>%
-
     add_content(tbl1)
 
 
@@ -1292,15 +1298,15 @@ test_that("pdf2-34: Table with break between sections works as expected.", {
   arm <- c(rep("A", 5), rep("B", 5))
 
   # Create data frame
-  df <- data.frame(subjid, name, sex, age, arm)
+  df1 <- data.frame(subjid, name, sex, age, arm)
 
 
-  tbl1 <- create_table(df, first_row_blank = TRUE) %>%
-    define(subjid, label = "Subject ID", align = "center", 
-           label_align = "center", width = 1) %>%
-    define(name, label = "Subject Name", width = 1) %>%
-    define(sex, label = "Sex") %>%
-    define(age, label = "Age") %>%
+  tbl1 <- create_table(df1, first_row_blank = TRUE, borders = "all") %>%
+    define(subjid, label = "Subject ID", align = "right", 
+           label_align = "right", width = 1) %>%
+    define(name, label = "Subject Name", width = 1, align = "right") %>%
+    define(sex, label = "Sex", align = "right") %>%
+    define(age, label = "Age", align = "right") %>%
     define(arm, label = "Arm",
            blank_after = TRUE,
            dedupe = TRUE,
@@ -1335,20 +1341,20 @@ test_that("pdf2-35: Title Header and page header/footer wrapping work as expecte
 
   dat <- iris[1:10, ]
 
-  tbl <- create_table(dat, borders = "none") %>%
-    title_header("Table 1.0", "My Nice Report with Borders",
+  tbl <- create_table(dat, borders = "all") %>%
+    title_header("Table 1.0", "My Nice Report with Borders that will go on and on",
                  right = c("Right1", "Right2",
                            "Right3 long enough to wrap around at least once"),
                  borders = "none",
                  blank_row = "none") %>%
-    footnotes("My footnote 1", "My footnote 2", valign = "bottom",
+    footnotes("My footnote 1", "My footnote 2", valign = "top",
               borders = "none",
-              blank_row = "above")
+              blank_row = "none")
 
   rpt <- create_report(fp, output_type = "PDF", font = fnt,
                        font_size = fsz, orientation = "landscape") %>%
     set_margins(top = 1, bottom = 1) %>%
-    add_content(tbl) %>%
+    add_content(tbl, align = "left") %>%
     page_header(c("Left1", "Left2\nwrap"), "Right 1") %>%
     page_footer("Left1",
                 "Center1 here is a whole bunch of stuff to try and make it wrap",
@@ -1531,7 +1537,7 @@ test_that("pdf2-41: Page by with borders works as expected.", {
   tbl <- create_table(dat, borders = "all", first_row_blank = TRUE) %>%
     titles("Table 1.0", "My Nice Report with a Page By", borders = "all", #c("top", "bottom"), 
            blank_row = "none", align = "left", font_size = 12) %>%
-    page_by(Species, label = "Species ", align = "left", borders = "all", # c("top", "bottom"),
+    page_by(Species, label = "Species: ", align = "left", borders = "all", # c("top", "bottom"),
             blank_row = "none") %>%
     footnotes("My footnote 1", "My footnote 2", borders = c("all"), 
               blank_row = "none")
@@ -1547,7 +1553,7 @@ test_that("pdf2-41: Page by with borders works as expected.", {
   res$column_widths
 
   expect_equal(file.exists(fp), TRUE)
-  expect_equal(res$pages, 6)
+  expect_equal(res$pages, 7)
   expect_equal(length(res$column_widths[[1]]), 5)
 
 
@@ -1848,6 +1854,43 @@ test_that("pdf2-51: Plot, Long Table and Long Text on same report works as expec
   
   
 })
+
+
+
+test_that("pdf2-52: PDF Image file works as expected.", {
+  
+  library(ggplot2)
+  
+  fp <- file.path(base_path, "pdf2/test52.pdf")
+  
+  p <- ggplot(mtcars, aes(x=cyl, y=mpg)) + geom_point()
+  
+  pltpath <- file.path(base_path, "pdf2/test52.jpg")
+  ggsave(pltpath, width = 8, height = 4, 
+         units = "in",
+         dpi = 300)
+  
+  plt <- create_plot(pltpath, height = 4, width = 8)
+  
+  rpt <- create_report(fp, output_type = "PDF", font = "Arial") %>%
+    page_header("Client", "Study: XYZ") %>%
+    titles("Figure 1.0", "MTCARS Miles per Cylinder Plot") %>%
+    set_margins(top = 1, bottom = 1) %>%
+    add_content(plt, align = "center") %>%
+    footnotes("* Motor Trend, 1974") %>%
+    page_footer("Time", "Confidential", "Page [pg] of [tpg]")
+  
+  res <- write_report(rpt)
+  
+  #print(res)
+  
+  expect_equal(file.exists(fp), TRUE)
+  expect_equal(res$pages, 1)
+  
+  
+})
+
+
 # # User Tests --------------------------------------------------------------
 
 # Lots of special characters not working
@@ -2186,10 +2229,6 @@ test_that("user3: listings works.", {
     expect_equal(file.exists(fp), TRUE)
 
 
-
-    # pdfpth <- file.path(base_path, "user/user3.pdf")
-    # write_report(rpt, pdfpth, output_type = "PDF")
-    # expect_equal(file.exists(pdfpth), TRUE)
   } else
     expect_equal(TRUE, TRUE)
 
@@ -2254,10 +2293,6 @@ test_that("user4: listing in cm and times works.", {
     expect_equal(file.exists(fp), TRUE)
 
 
-
-    # pdfpth <- file.path(base_path, "user/user3.pdf")
-    # write_report(rpt, pdfpth, output_type = "PDF")
-    # expect_equal(file.exists(pdfpth), TRUE)
   } else
     expect_equal(TRUE, TRUE)
 

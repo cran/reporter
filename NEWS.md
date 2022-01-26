@@ -1,3 +1,9 @@
+# reporter 1.2.9
+
+* Added all border options to PDF.
+* Allowed `create_plot()` to accept a JPG image path so that the user can embed
+plot images exported from other charting packages besides ggplot.
+
 # reporter 1.2.8
 
 * Added Arial, Times, and Courier fonts to PDF output type.  

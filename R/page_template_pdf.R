@@ -19,12 +19,16 @@ page_template_pdf<- function(rs) {
                               ystart = pt$page_header$points)
   
   pt$page_footer <- get_page_footer_pdf(rs)
+  
+
 
   
   pt$footnotes <- c()
   if (!is.null(rs$footnotes)) {
     if (!is.null(rs$footnotes[[1]])) {
       if (rs$footnotes[[1]]$valign == "bottom")
+
+  
         pt$footnotes <- get_footnotes_pdf(rs$footnotes, rs$line_size, rs, 
                                           footer_lines = pt$page_footer$lines)
     }
@@ -685,10 +689,19 @@ get_footnotes_pdf <- function(ftnlst, content_width, rs,
         
       }
       
-      if (brdr_flag)
-        ypos <- ystart - olh  
-      else 
-        ypos <- ystart + bh - olh + bs 
+      
+      if (is.null(ystart)) {
+        
+        ypos <- (rs$content_size[["height"]] * rs$point_conversion) - 
+          ((cnt + footer_lines - alcnt) * lh ) - (alcnt * lh) - lh 
+      } else {
+      
+      
+        if (brdr_flag)
+          ypos <- ystart - olh  
+        else 
+          ypos <- ystart + bh - olh + bs 
+      }
       
       badj <- 0
       if (!any(brdrs %in% c("all", "inside")))
@@ -749,15 +762,18 @@ get_title_header_pdf <- function(thdrlst, content_width, rs,
   conv <- rs$point_conversion
   bs <- rs$border_spacing
   bh <- rs$border_height
-  lyline <- ystart
-  ryline <- ystart
+  startpos <- ystart
   tcnt <- 0
   hcnt <- 0
   pnts <- 0
+  counter <- 0
+
 
   if (length(thdrlst) > 0) {
 
     for (ttlhdr in thdrlst) {
+      
+      counter <- counter + 1
 
       if (ttlhdr$width == "page")
         width <- rs$content_size[["width"]]
@@ -778,12 +794,28 @@ get_title_header_pdf <- function(thdrlst, content_width, rs,
         rb1 <- width
       }
       rb2 <- rb1 * .7
-      splitx <- rb1 * .82  * conv
+      splitx <- (lb + ((rb1 - lb) * .7))  * conv
       brdrs <- strip_borders(ttlhdr$borders)
       
-      if (any(brdrs %in% c("all", "inside"))) {
-        lh <- rs$line_height + bh
+      if (counter == 1) {
+        if (any(brdrs %in% c("all", "top", "outside"))) {
+          
+          startpos <- ystart + bs - 1
+          
+        } else {
+          
+          startpos <- ystart
+          
+        }
+        lyline <- startpos
+        ryline <- startpos
       }
+      
+      
+      lh <- rs$line_height
+      if (any(ttlhdr$borders %in% c("all", "inside")))
+        lh <- lh + bh
+
 
       mx <- max(length(ttlhdr$titles), length(ttlhdr$right))
 
@@ -799,6 +831,8 @@ get_title_header_pdf <- function(thdrlst, content_width, rs,
 
         al <- ""
         if (i == 1) {
+          
+          
           if (any(ttlhdr$blank_row %in% c("above", "both"))) {
 
             alcnt <- 1
@@ -806,7 +840,7 @@ get_title_header_pdf <- function(thdrlst, content_width, rs,
             if (any(brdrs %in% c("all", "inside"))) {
               
               ret[[length(ret) + 1]] <- page_hline(lb * conv, 
-                                                   ystart + bs, 
+                                                   startpos + bs, 
                                                    (rb1 - lb) * conv) 
             }
 
@@ -841,7 +875,7 @@ get_title_header_pdf <- function(thdrlst, content_width, rs,
           if (any(brdrs %in% c("all", "inside")) ) {
             
             ret[[length(ret) + 1]] <- page_hline(lb * conv, 
-                                                 lyline - lh + bs, 
+                                                 lyline - lh + bs + 1, 
                                                  splitx - (lb * conv)) 
           }
           
@@ -871,10 +905,10 @@ get_title_header_pdf <- function(thdrlst, content_width, rs,
           }
           
           if (any(brdrs %in% c("all", "inside"))) {
-            
-            ret[[length(ret) + 1]] <- page_hline(splitx, 
-                                                 ryline - lh + bs, 
-                                                 (rb1* conv) - splitx) 
+
+            ret[[length(ret) + 1]] <- page_hline(splitx,
+                                                 ryline - lh + bs + 1,
+                                                 (rb1* conv) - splitx)
           }
           
           hcnt <- hcnt + tmp2$lines
@@ -883,12 +917,6 @@ get_title_header_pdf <- function(thdrlst, content_width, rs,
           hcnt <- hcnt + 0
         }
         
-
-
-
-
-
-
       }
       
       if (tcnt > hcnt)
@@ -904,7 +932,7 @@ get_title_header_pdf <- function(thdrlst, content_width, rs,
           
           
           ret[[length(ret) + 1]] <- page_hline(lb * conv,
-                                               (ystart + (cnt * lh) - lh) + bs,
+                                               (startpos + (cnt * lh) - lh) + bs + 1,
                                                (rb1 - lb) * conv)
         }
         
@@ -924,50 +952,67 @@ get_title_header_pdf <- function(thdrlst, content_width, rs,
         pnts <- (cnt * lh) + bh
       else
         pnts <- cnt * lh
+      
+     pnts <- pnts + (startpos - ystart) + 1
+     
+     ypos <-  ystart - rs$line_height + bs + 1
+     
+     badj <- 0
+     if (lh == rs$line_height & any(brdrs %in% c("bottom", "outside"))) {
+       badj <- bh
+     }
+     
 
+      # Top border
       if (any(brdrs %in% c("all", "outside", "top"))) {
         
         ret[[length(ret) + 1]] <- page_hline(lb * conv, 
-                                             ystart - lh, 
+                                             ypos, 
                                              (rb1 - lb) * conv) 
         
       }
       
+      #  Bottom border
       if (any(brdrs %in% c("all", "outside", "bottom"))) {
         
         ret[[length(ret) + 1]] <- page_hline(lb * conv, 
-                                             ystart - lh  + (cnt * lh) + bs, 
+                                             ypos + (cnt * lh) + badj, 
                                              (rb1 - lb) * conv) 
+        
+        pnts <- pnts + badj
         
       }
       
+      # Left border
       if (any(brdrs %in% c("all", "outside", "left"))) {
         
         
         ret[[length(ret) + 1]] <- page_vline(lb * conv, 
-                                             ystart - lh, 
-                                             (cnt * lh) + bs) 
+                                             ypos, 
+                                             (cnt * lh) + badj) 
         
       }
       
+      # Right border
       if (any(brdrs %in% c("all", "outside", "right"))) {
         
         
         ret[[length(ret) + 1]] <- page_vline(rb1 * conv, 
-                                             ystart - lh, 
-                                             (cnt * lh) + bs) 
+                                             ypos, 
+                                             (cnt * lh) + badj) 
         
       }
       
+     # Middle border
       if (any(brdrs %in% c("all", "inside"))) {
         
         bldiff <- blcnt - alcnt
         if (bldiff < 0)
           bldiff <- 0
         
-        ret[[length(ret) + 1]] <- page_vline(splitx, # Don't know why
-                                             ystart - lh + (alcnt * lh) + (alcnt * bs), 
-                                             ((cnt - alcnt - blcnt) * lh) + (bldiff * bs)) 
+        ret[[length(ret) + 1]] <- page_vline(splitx, 
+                                             ypos + (alcnt * lh), 
+                                             ((cnt - alcnt - blcnt) * lh) ) 
         
       }
       
@@ -1049,13 +1094,19 @@ get_page_by_pdf <- function(pgby, width, value, rs, talgn, ystart = 0,
 
     if (pgby$blank_row %in% c("above", "both")) {
 
+      if (any(brdrs %in% c("all", "inside"))) {
+        ret[[length(ret) + 1]] <- page_hline(lb * conv,
+                                             yline + bs,
+                                             (rb - lb) * conv)
+      }
+      
       yline <- yline + lh
       cnt <- cnt + 1
       pnts <- pnts + lh
     }
 
 
-    vl <- paste0( pgby$label, ": ", value)
+    vl <- paste0( pgby$label, " ", value)
 
     tmp <- split_string_text(vl, width, rs$units)
     
@@ -1079,6 +1130,14 @@ get_page_by_pdf <- function(pgby, width, value, rs, talgn, ystart = 0,
 
     
     if (pgby$blank_row %in% c("below", "both")) {
+      
+      
+      if (any(brdrs %in% c("all", "inside"))) {
+        ret[[length(ret) + 1]] <- page_hline(lb * conv,
+                                             yline - lh + bs,
+                                             (rb - lb) * conv)
+      }
+      
       yline <- yline + lh
       cnt <- cnt + 1
       pnts <- pnts + lh
@@ -1094,42 +1153,42 @@ get_page_by_pdf <- function(pgby, width, value, rs, talgn, ystart = 0,
       ypos <-  ystart - lh + bs + 1
     
     # Top border
-    # if (any(brdrs %in% c("all", "outside", "top"))) {
-    #   
-    #   ret[[length(ret) + 1]] <- page_hline(lb * conv, 
-    #                                        ypos, 
-    #                                        (rb - lb) * conv) 
-    #   
-    # }
-    # 
-    # # Bottom border
-    # if (any(brdrs %in% c("all", "outside", "bottom"))) {
-    #   
-    #   ret[[length(ret) + 1]] <- page_hline(lb * conv, 
-    #                                        ypos  + (cnt * lh), 
-    #                                        (rb - lb) * conv) 
-    #   border_flag <- TRUE
-    # }
-    # 
-    # # Left border
-    # if (any(brdrs %in% c("all", "outside", "left"))) {
-    #   
-    #   
-    #   ret[[length(ret) + 1]] <- page_vline(lb * conv, 
-    #                                        ypos, 
-    #                                        (cnt * lh)) # Don't know why 
-    #   
-    # }
-    # 
-    # # Right border
-    # if (any(brdrs %in% c("all", "outside", "right"))) {
-    #   
-    #   
-    #   ret[[length(ret) + 1]] <- page_vline(rb * conv, 
-    #                                        ypos, 
-    #                                        (cnt * lh) ) 
-    #   
-    # }
+    if (any(brdrs %in% c("all", "outside", "top"))) {
+
+      ret[[length(ret) + 1]] <- page_hline(lb * conv,
+                                           ypos,
+                                           (rb - lb) * conv)
+
+    }
+
+    # Bottom border
+    if (any(brdrs %in% c("all", "outside", "bottom"))) {
+
+      ret[[length(ret) + 1]] <- page_hline(lb * conv,
+                                           ypos  + (cnt * lh),
+                                           (rb - lb) * conv)
+      border_flag <- TRUE
+    }
+
+    # Left border
+    if (any(brdrs %in% c("all", "outside", "left"))) {
+
+
+      ret[[length(ret) + 1]] <- page_vline(lb * conv,
+                                           ypos,
+                                           (cnt * lh)) 
+
+    }
+
+    # Right border
+    if (any(brdrs %in% c("all", "outside", "right"))) {
+
+
+      ret[[length(ret) + 1]] <- page_vline(rb * conv,
+                                           ypos,
+                                           (cnt * lh) )
+
+    }
 
   }
 
@@ -1145,87 +1204,6 @@ get_page_by_pdf <- function(pgby, width, value, rs, talgn, ystart = 0,
 # Utilities ---------------------------------------------------------------
 
 
-get_cell_borders_pdf <- function(startx, starty, col_widths, row_heights, brdrs, 
-                                 flag = "", exclude = NULL) {
-  
-  t <- ""
-  b <- ""
-  l <- ""
-  r <- ""
-  
-  
-  # if ("all" %in% brdrs) {
-  #   t <- "\\clbrdrt\\brdrs"
-  #   b <- "\\clbrdrb\\brdrs"
-  #   l <- "\\clbrdrl\\brdrs"
-  #   r <- "\\clbrdrr\\brdrs"
-  # } else {
-  #   
-  #   if ("inside" %in% brdrs) {
-  #     
-  #     t <- "\\clbrdrt\\brdrs"
-  #     b <- "\\clbrdrb\\brdrs"
-  #     l <- "\\clbrdrl\\brdrs"
-  #     r <- "\\clbrdrr\\brdrs"
-  #     
-  #     if (col == 1) 
-  #       l <- ""
-  #     
-  #     if (col == ncol)
-  #       r <- ""
-  #     
-  #     if (row == nrow)
-  #       b <- ""
-  #     
-  #     if (row == 1)
-  #       t <- ""
-  #     
-  #   }
-  #   
-  #   if (row == 1 & any(brdrs %in% c("outside", "top")))
-  #     t <- "\\clbrdrt\\brdrs"
-  #   
-  #   if (row == nrow & any(brdrs %in% c("bottom", "outside")))
-  #     b <- "\\clbrdrb\\brdrs"
-  #   
-  #   if (col == 1 & any(brdrs %in% c("outside", "left")))
-  #     l <- "\\clbrdrl\\brdrs"
-  #   
-  #   if (col == ncol & any(brdrs %in% c("outside", "right")))
-  #     r <- "\\clbrdrr\\brdrs"
-  #   
-  # }
-  # 
-  # # Deal with flag
-  # if (!is.na(flag)) {
-  #   if (flag %in% c("L", "B")) {
-  #     
-  #     if (col != ncol)
-  #       r <- ""
-  #     
-  #     if (col != 1)
-  #       l <- ""
-  #   }
-  # }
-  # 
-  # if (!is.null(exclude)) {
-  #   if (any(exclude == "top"))
-  #     t <- ""
-  #   if (any(exclude == "bottom"))
-  #     b <- ""
-  #   if (any(exclude == "left"))
-  #     l <- ""
-  #   if (any(exclude == "right"))
-  #     r <- ""
-  # }
-  # 
-  # ret <- paste0(t, b, l, r)
-  
-  ret <- ""
-  
-  return(ret)
-  
-}
 
 get_page_numbers_pdf <- function(txt, pg, tpg) {
   
@@ -1245,18 +1223,18 @@ strip_borders <- function(bspec) {
   
  ret <- bspec
  
- if ("all" %in% ret)
-   ret <- append(ret[ret != "all"], c("top", "bottom"))
- if ("inside" %in% ret)
-   ret <- ret[ret != "inside"]
- if ("outside" %in% ret)
-   ret <- append(ret[ret != "outside"], c("top", "bottom"))
- if ("body" %in% ret)
-   ret <- append(ret[ret != "body"], c("top", "bottom"))
- if ("left" %in% ret)
-   ret <- ret[ret != "left"]
- if ("right" %in% ret)
-   ret <- ret[ret != "right"]
+ # if ("all" %in% ret)
+ #   ret <- append(ret[ret != "all"], c("top", "bottom"))
+ # if ("inside" %in% ret)
+ #   ret <- ret[ret != "inside"]
+ # if ("outside" %in% ret)
+ #   ret <- append(ret[ret != "outside"], c("top", "bottom"))
+ # if ("body" %in% ret)
+ #   ret <- append(ret[ret != "body"], c("top", "bottom"))
+ # if ("left" %in% ret)
+ #   ret <- ret[ret != "left"]
+ # if ("right" %in% ret)
+ #   ret <- ret[ret != "right"]
   
  return(ret)
 }
