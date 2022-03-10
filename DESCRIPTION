@@ -1,7 +1,7 @@
 Package: reporter
 Type: Package
 Title: Creates Statistical Reports
-Version: 1.2.9
+Version: 1.3.1
 Authors@R: c( 
     person("David", "Bosak", email = "dbosak01@gmail.com", role = c("aut", "cre")),
     person("Kevin", "Kramer", role = "ctb"),
@@ -12,7 +12,8 @@ Description: Contains functions to create regulatory-style statistical reports.
     Originally designed to create tables, listings, and figures for the 
     pharmaceutical, biotechnology, and medical device industries, these
     reports are generalized enough that they could be used in any industry.
-    Generates text, rich-text, PDF and HTML file formats.  The package specializes 
+    Generates text, rich-text, PDF, HTML, and Microsoft Word file formats.  
+    The package specializes 
     in printing wide and long tables with automatic page wrapping and splitting.  
     Reports can be produced with a minimum of function calls, and without 
     relying on other table packages.  The package supports titles, footnotes, 
@@ -25,13 +26,13 @@ BugReports: https://github.com/dbosak01/reporter/issues
 Depends: R (>= 3.6.0)
 Suggests: testthat, magrittr, dplyr, tidyr, readr, knitr, rmarkdown,
         ggplot2, gridExtra, survminer, utils, logr, covr
-Imports: fmtr, stringi, crayon, jpeg, graphics, grDevices
+Imports: fmtr, stringi, crayon, jpeg, graphics, grDevices, zip, withr
 RoxygenNote: 7.1.2
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2022-01-26 01:45:48 UTC; dbosa
+Packaged: 2022-03-10 14:28:54 UTC; dbosa
 Author: David Bosak [aut, cre],
   Kevin Kramer [ctb],
   Archytas Clinical Solutions [cph]
 Repository: CRAN
-Date/Publication: 2022-01-26 17:12:42 UTC
+Date/Publication: 2022-03-10 15:10:02 UTC
