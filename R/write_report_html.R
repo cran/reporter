@@ -82,6 +82,8 @@ get_html_document <- function(rs) {
   # Set up vectors
   ret <- c()
   
+  sty <- rs$style
+  
   conv <- rs$twip_conversion
   
   fnt <- rs$font
@@ -108,13 +110,46 @@ get_html_document <- function(rs) {
                                  round(rs$margin_bottom/2, 3), u, ";\n",
                                  "margin-left: ", rs$margin_left, u, ";\n",
                                  "margin-right: ", rs$margin_right, u, ";\n",
+                                 get_style_html(rs, "background_color"),
+                                 get_style_html(rs, "text_color"),
                                  "}")
-  ret[length(ret) + 1] <- paste0(".thdr {font-weight: normal;", 
-                                  "border-bottom: thin solid;", 
+  
+  brdrcolor <- get_style(rs, "border_color")
+  if (brdrcolor == "")
+    brdrcolor <- "black"
+  
+  ret[length(ret) + 1] <- paste0(".thdr {", 
+                                  "border-bottom: thin solid ", brdrcolor, ";", 
+                                  get_style_html(rs, "table_header_background"),
+                                  get_style_html(rs, "table_header_font_color"),
+                                  get_style_html(rs, "table_header_font_bold", FALSE),
                                   "}")
+  ret[length(ret) + 1] <- paste0(".shdr {", 
+                                 get_style_html(rs, "table_header_background"),
+                                 get_style_html(rs, "table_header_font_color"),
+                                 get_style_html(rs, "table_header_font_bold", FALSE),
+                                 "}")
   ret[length(ret) + 1] <- paste0(".tdc {text-align:center;}")
   ret[length(ret) + 1] <- paste0(".tdl {text-align:left;}")
   ret[length(ret) + 1] <- paste0(".tdr {text-align:right;}")
+  ret[length(ret) + 1] <- paste0(".tc {", 
+                                 get_style_html(rs, "table_body_background"), 
+                                 "}")
+
+  ret[length(ret) + 1] <- paste0(".tbs {", 
+                                 get_style_html(rs, "table_body_font_color"),
+                                 "}")
+  ret[length(ret) + 1] <- paste0(".tbstr {", 
+                                 get_style_html(rs, "table_body_stripe"),
+                                 "}")
+  ret[length(ret) + 1] <- paste0(".ts {", 
+                                 get_style_html(rs, "table_stub_background"), 
+                                 get_style_html(rs, "table_stub_font_bold"),
+                                 get_style_html(rs, "table_stub_font_color"),
+                                 "}")
+  ret[length(ret) + 1] <- paste0(".tlr {", 
+                                 get_style_html(rs, "table_label_row_bold"), 
+                                 "}")
   ret[length(ret) + 1] <- paste0("table {",
                                  "border-spacing: 0;",
                                  "border-collapse: collapse;",
@@ -439,36 +474,6 @@ update_page <- function(lns, pg) {
 # # A lot of these values are guesses.  Need to test.
 # # Row height and line height were defined independently in case
 # # they are different.  Right now, appear to be the same.
-# if (rs$font_size == 8) {
-#   rh <- 185 #round(.11 * 1440)
-#   lh <- 185 #round(.1 * 1440) 
-#   #pb <- "\\fs1\\sl0\\par\\pard\\fs16\\page\\fs1\\sl0\\par\\pard\\fs16"
-#   pb <- "{\\pard\\pagebb\\fs1\\sl0\\par}\\fs16"
-#   gtr <- .1 
-#   cw <- .1
-#   cp <- 40
-#   sm <- "\\sl-180\\slmult0"
-# } else if (rs$font_size == 10) {
-#   rh <- 228 #round(.165 * 1440) # 225
-#   lh <- 228 #round(.165 * 1440)  
-#   #pb <- "\\page\\line" #fs1\\sl0\\par\\pard\\fs20"
-#   pb <-  "{\\pard\\pagebb\\fs1\\sl0\\par}\\fs20"
-#   gtr <- .1
-#   cw <- .11
-#   cp <- 40
-#   sm <- "\\sl-225\\slmult0"
-# } else if (rs$font_size == 12) {
-#   rh <- 275 #round(.2 * 1440)
-#   lh <- 275 #round(.1875 * 1440) #270
-#   pb <- "{\\pard\\pagebb\\fs1\\sl0\\par}\\fs24"
-#   gtr <- .11
-#   cw <- .12
-#   cp <- 40
-#   sm <- "\\sl-275\\slmult0"
-# }
-# 
-# 
-
 
 #' @description Setup page for content
 #' @details  Calculates available space for content and prepares text lines

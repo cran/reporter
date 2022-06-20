@@ -21,16 +21,17 @@ write_report_docx <- function(rs) {
   if (file.exists(orig_path)) {
     file.remove(orig_path)
   }
-
   
   # Establish content and body sizes
   rs <- page_setup_docx(rs)
+  
   
   # Document header is mostly independent of content
   hdr <- get_docx_document(rs) 
   
   # Put content in a new variable
   ls <- rs$content
+  
   
   # Get content and break it into pages
   # Needs to return a list of pages so preview can work
@@ -443,8 +444,10 @@ write_content_docx <- function(rs, hdr, body, pt) {
   if (file.exists(rs$modified_path))
     file.remove(rs$modified_path)
   
+  
   # Copy from temp path to perm path and zip
   write_docx(tf, rs$modified_path)
+  
   
   return(rs)
   
@@ -724,31 +727,31 @@ get_rh <- function(font, font_size) {
   } else if (font_size == 10) {
     
     if (tolower(font) == "times")
-      rh <- 0.175  
+      rh <- 0.178  
     else if (tolower(font) == "arial")
-      rh <- 0.175 #0.182  # 0.1585366
+      rh <- 0.178 #0.182  # 0.1585366
     else
       rh <- 0.175 #0.182  # 0.1585366
     
   } else if (font_size == 11) {
     
     if (tolower(font) == "times")
-      rh <- 0.19
+      rh <- 0.195
     else if (tolower(font) == "arial")
-      rh <- 0.19 # 0.168
+      rh <- 0.195 # 0.168
     else 
-      rh <- 0.19 # 0.168
+      rh <- 0.192 # 0.168
 
     
   } else if (font_size == 12) {
     
     # inches 
     if (tolower(font) == "times")
-      rh <- 0.21  # 1911765 
+      rh <- 0.212  # 1911765 
     else if (tolower(font) == "arial")
-      rh <- 0.21  # 1911765 
+      rh <- 0.212  # 1911765 
     else 
-      rh <- 0.205  # 1911765 
+      rh <- 0.212  # 1911765 
 
   } else if (font_size == 14) {
     

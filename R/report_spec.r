@@ -73,11 +73,11 @@
 #' used for the entire report.  Valid values are "Courier", "Arial", "Times",
 #' and "fixed".  The value of "fixed" will create a fixed-width, text style
 #' report in Courier font.  The \code{font} parameter only applies to 
-#' RTF, HTML, and PDF reports.  The default value is "fixed".
+#' RTF, HTML, PDF, and DOCX reports.  The default value is "fixed".
 #' @param font_size The size of the font to use on the report. The \code{font_size}
 #' specified will be used for the entire report.  Valid values are 8, 9, 10, 11,
-#' and 12.  The \code{font_size} parameter only applies to RTF, PDF, and HTML 
-#' output types. The default value is 10.
+#' and 12.  The \code{font_size} parameter only applies to RTF, PDF, HTML, and  
+#' DOCX output types. The default value is 10.
 #' @return A new report_spec object.
 #' @family report
 #' @seealso \code{\link{create_table}}, \code{\link{create_text}}, and
@@ -218,6 +218,7 @@ create_report <- function(file_path = "", output_type = "TXT",
   x$font_size <- font_size
 
   
+  # Not needed for DOCX and HTML because there is no text version
   if (output_type %in% c("TXT", "PDF", "RTF")) {
     
     # Set default options for text
@@ -244,45 +245,6 @@ create_report <- function(file_path = "", output_type = "TXT",
 
 
 # Options -----------------------------------------------------------------
-
-
-#' @title
-#' Set options for a report (variable width font)
-#'
-#' @description
-#' This function sets the options for a report of output type 
-#' 'RTF', or 'PDF' when the \code{font_type} parameter on 
-#' \code{\link{create_report}} function is set to "variable".
-#'
-#' @param x The report spec.
-#' @param font_name The font name to use on the report.  The specified font
-#' will be used on the entire report.  Valid values are "Courier", "Courier New", 
-#' "Arial", "Calibri", or "Times New Roman".  The default font is "Courier New".
-#' @param font_size The font point size.  Valid values are 10 or 12.
-#' @return The updated report spec.
-#' @family report
-#' @examples
-#' # Here is an example
-#' # This function commented out for now, until variable width fonts are available.
-#' @noRd  
-NULL
-# options_variable <- function(x, font_name="Courier New", font_size=10) {
-#   
-#   # Trap missing or invalid font_name parameter.
-#   if (!font_name %in% c("Courier New", "Times New Roman", "Arial", "Calibri")) {
-#     
-#     stop(paste0("font_name parameter on create_report() ",
-#                 "function is invalid: '", font_name,
-#                 "'\n\tValid values are: 'Arial', 'Calibri', 'Courier New', ",
-#                 "and 'Times New Roman'."))
-#   }
-#   
-#   x$font_size <-font_size
-#   x$font_name <- font_name
-#   x$font_family <- get_font_family(font_name)
-#   
-#   return(x)
-# }
 
 
 #' @description This is a lookup table to get standard settings for various 
@@ -366,7 +328,7 @@ editor_settings <- read.table(header = TRUE, text = '
 #' 
 #' Some of the \code{options_fixed} function apply only to RTF and PDF.
 #' In particular, the \code{font_size} parameter applies only to RTF and PDF
-#' reports.  Valid font size options are 8, 10, and 12.  The font size may
+#' reports.  Valid font size options are 8, 9, 10, 11, and 12.  The font size may
 #' also be set on the \code{\link{create_report}} function.
 #' 
 #' @param x The report spec.
@@ -1038,7 +1000,7 @@ page_header <- function(x, left="", right="", blank_row = "none"){
 #' 'bottom', 'left', 'right', 'outside', 'inside', 'all', or 'none'.  
 #' Default is 'none'.   The 
 #' 'left', 'right', 'outside', and 'inside' border specifications only 
-#' apply to RTF and HTML reports.
+#' apply to RTF, HTML, PDF and DOCX reports.
 #' @param width The width of the title header.  If the title header is attached
 #' to the report, valid values are 'page' or a numeric width, and the default
 #' is 'page'. If the title header is attached to the
@@ -1222,7 +1184,7 @@ title_header <- function(x, ..., right = "",
 #' 'bottom', 'left', 'right', 'outside', 'inside', 'all', or 'none'.  
 #' Default is "none".  
 #' The 'left', 'right', 'outside', and 'inside' border specifications 
-#' only apply to RTF and HTML reports.
+#' only apply to RTF, HTML, PDF and DOCX reports.
 #' @param width The width of the titles block.  If the titles are attached
 #' to the report, valid values are 'page' or a numeric width, and the default
 #' is 'page'. If the titles are attached to the
@@ -1236,12 +1198,11 @@ title_header <- function(x, ..., right = "",
 #' units of measure is determined by the 'units' parameter on 
 #' @param bold A parameter to bold the titles.  Valid values are TRUE and FALSE.
 #' Default is FALSE.  This parameter only applies to variable-width RTF, HTML, 
-#' and PDF output types.
+#' PDF, and DOCX output types.
 #' @param font_size The font size to use for the title block.  The font size
 #' of the report will be used by default.  Valid values are 8, 9, 10, 11, 12,
-#' 13, and 14.  This parameter only applies to variable-width RTF, HTML, and PDF
-#' output types.
-#' \code{\link{create_report}}.
+#' 13, and 14.  This parameter only applies to variable-width RTF, HTML, PDF,
+#' and DOCX output types.
 #' @return The modified report.
 #' @family report
 #' @examples
@@ -1402,7 +1363,7 @@ titles <- function(x, ..., align = "center", blank_row = "below",
 #' border character will be taken from the value of the \code{uchar} parameter
 #' on the \code{\link{options_fixed}} function.  The 
 #' 'left', 'right', 'outside', and 'inside' border specifications only apply 
-#' to RTF and HTML reports.
+#' to RTF, HTML, PDF, and DOCX reports.
 #' @param valign The vertical position to align the footnotes.  Valid
 #' values are: 'top' and 'bottom'.  For footnotes attached to a report,
 #' default is 'bottom'.  For footnotes attached to content, default is 'top'.
@@ -1686,7 +1647,8 @@ page_footer <- function(x, left="",  center="", right="", blank_row = "above"){
 #' 'both', or 'none'.
 #' @param borders Whether and where to place a border. Valid values are 'top',
 #' 'bottom', 'left', 'right', 'all', 'outside', or 'none'.  Default is "none".  
-#' The 'left' and 'right' border specifications only apply to RTF and HTML reports.
+#' The 'left' and 'right' border specifications only apply to RTF, HTML, PDF,
+#' and DOCX reports.
 #' @family report
 #' @seealso \code{\link{create_table}} to create a table, and 
 #' \code{\link{create_plot}} to create a plot.  
@@ -1852,8 +1814,8 @@ page_by <- function(x, var, label = NULL, align = "left",
 #' whether there is a page break before or after.
 #' @details 
 #' The \code{add_content} function adds a piece of content to a report. For a 
-#' text report, valid objects are a table or text object.  For an RTF, PDF, or 
-#' HTML report, valid objects are a table, text, or plot object.  See 
+#' text report, valid objects are a table or text object.  For an RTF, PDF,  
+#' HTML, or DOCX report, valid objects are a table, text, or plot object.  See 
 #' \code{\link{create_table}}, \code{\link{create_text}}, or 
 #' \code{\link{create_plot}} for further 
 #' information on how to create content objects.  
@@ -1974,8 +1936,8 @@ add_content <- function(x, object, page_break=TRUE, align = "center",
 #' the \code{output_type} on the \code{create_report} function.  This 
 #' parameter can be used to output the same report object to 
 #' multiple output types. Default value is NULL, meaning it will not override
-#' the \code{create_report} value.  Valid values are 'TXT', 'RTF', 'PDF' and 
-#' 'HTML'.
+#' the \code{create_report} value.  Valid values are 'TXT', 'RTF', 'DOCX', 
+#' 'PDF' and 'HTML'.
 #' @param preview Whether to write the entire report, or a report preview.
 #' A report preview is a subset of pages of the report.  The default value is 
 #' NULL, meaning the entire report will be written.  You may also pass 

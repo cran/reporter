@@ -214,6 +214,11 @@ get_titles_html <- function(ttllst, content_width, rs, talgn = "center") {
   # else if (talgn %in% c("center", "centre"))
   #   ta <- "align=\"center\" "
   
+  sty <- paste0(get_style_html(rs, "title_font_color"),
+                get_style_html(rs, "title_background"),
+                get_style_html(rs, "title_font_bold"),
+                get_style_html(rs, "title_font_size"))
+  
   u <- rs$units
   if (rs$units == "inches")
     u <- "in"
@@ -248,7 +253,7 @@ get_titles_html <- function(ttllst, content_width, rs, talgn = "center") {
       
       ret[length(ret) + 1] <- paste0("<table ",
                                      "style=\"width:", w, u, ";", 
-                                     algn, 
+                                     algn, sty,
                                      "\">\n")
       
       for (i in seq_along(ttls$titles)) {
@@ -262,7 +267,8 @@ get_titles_html <- function(ttllst, content_width, rs, talgn = "center") {
             alcnt <- 1
 
             tb <- get_cell_borders_html(i, 1, length(ttls$titles) + alcnt, 
-                                   1, ttls$borders)
+                                   1, ttls$borders, 
+                                   border_color = get_style(rs, "border_color"))
             
             if (tb == "")
               al <- "<tr><td>&nbsp;</td></tr>\n"
@@ -280,7 +286,8 @@ get_titles_html <- function(ttllst, content_width, rs, talgn = "center") {
             
             tb <- get_cell_borders_html(i + alcnt + blcnt, 1,
                                    length(ttls$titles) + alcnt + blcnt,
-                                   1, ttls$borders)
+                                   1, ttls$borders,
+                                   border_color = get_style(rs, "border_color"))
 
             if (tb == "")
               bl <- "<tr><td>&nbsp;</td></tr>\n"
@@ -294,7 +301,8 @@ get_titles_html <- function(ttllst, content_width, rs, talgn = "center") {
         
         b <- get_cell_borders_html(i + alcnt, 1,
                               length(ttls$titles) + alcnt + blcnt,
-                              1, ttls$borders)
+                              1, ttls$borders,
+                              border_color = get_style(rs, "border_color"))
         
         # Split title strings if they exceed width
         tmp <- split_string_html(ttls$titles[[i]], width, rs$units)
@@ -368,6 +376,10 @@ get_footnotes_html <- function(ftnlst, content_width, rs, talgn = "center",
   if (rs$units == "inches")
     u <- "in"
   
+  sty <- paste0(get_style_html(rs, "footnote_font_color"),
+                get_style_html(rs, "footnote_background"),
+                get_style_html(rs, "footnote_font_bold"))
+  
   
   if (length(ftnlst) > 0) {
 
@@ -398,7 +410,7 @@ get_footnotes_html <- function(ftnlst, content_width, rs, talgn = "center",
       par(family = get_font_family(rs$font), ps = rs$font_size)
       ret[length(ret) + 1] <- paste0("<table ",
                                      "style=\"width:", w, u, ";",
-                                     algn,
+                                     algn, sty,
                                      "\">\n")
 
       for (i in seq_along(ftnts$footnotes)) {
@@ -411,7 +423,8 @@ get_footnotes_html <- function(ftnlst, content_width, rs, talgn = "center",
             alcnt <- 1
           
             tb <- get_cell_borders_html(i, 1, length(ftnts$footnotes) + alcnt,
-                                   1, ftnts$borders, exclude = exclude_top)
+                                   1, ftnts$borders, exclude = exclude_top,
+                                   border_color = get_style(rs, "border_color"))
             
             if (tb == "")
               al <- "<tr><td>&nbsp;</td></tr>\n"
@@ -430,7 +443,8 @@ get_footnotes_html <- function(ftnlst, content_width, rs, talgn = "center",
 
             tb <- get_cell_borders_html(i + alcnt + blcnt, 1,
                                    length(ftnts$footnotes) + alcnt + blcnt,
-                                   1, ftnts$borders)
+                                   1, ftnts$borders,
+                                   border_color = get_style(rs, "border_color"))
             
             if (tb == "")
               bl <- "<tr><td>&nbsp;</td></tr>\n"
@@ -444,7 +458,8 @@ get_footnotes_html <- function(ftnlst, content_width, rs, talgn = "center",
 
         b <- get_cell_borders_html(i + alcnt, 1,
                               length(ftnts$footnotes) + alcnt + blcnt,
-                              1, ftnts$borders, exclude = exclude_top)
+                              1, ftnts$borders, exclude = exclude_top,
+                              border_color = get_style(rs, "border_color"))
 
 
 
@@ -492,11 +507,6 @@ get_title_header_html <- function(thdrlst, content_width, rs, talgn = "center") 
   cnt <- 0
   border_flag <- FALSE
   
-  # ta <- "align=\"left\" "
-  # if (talgn == "right")
-  #   ta <- "align=\"right\" "
-  # else if (talgn %in% c("center", "centre"))
-  #   ta <- "align=\"center\" "
   
   u <- rs$units
   if (rs$units == "inches")
@@ -524,7 +534,6 @@ get_title_header_html <- function(thdrlst, content_width, rs, talgn = "center") 
       par(family = get_font_family(rs$font), ps = rs$font_size)
       
       ret[length(ret) + 1] <- paste0("<table ",
-                                   #  ta,
                                      "style=\"width:", w, u, ";", 
                                      "\">\n", 
                                      "<colgroup><col style=\"width:70%;\">\n",
@@ -540,9 +549,11 @@ get_title_header_html <- function(thdrlst, content_width, rs, talgn = "center") 
             alcnt <- 1
 
             tb1 <- get_cell_borders_html(i, 1, mx + alcnt,
-                                   2, ttlhdr$borders)
+                                   2, ttlhdr$borders,
+                                   border_color = get_style(rs, "border_color"))
             tb2 <- get_cell_borders_html(i, 2, mx + alcnt,
-                                        2, ttlhdr$borders)
+                                        2, ttlhdr$borders,
+                                        border_color = get_style(rs, "border_color"))
 
             al <- paste0("<tr><td style=\"text-align:left;", tb1, "\">&nbsp;</td>", 
                          "<td style=\"text-align:right;", tb2, 
@@ -559,10 +570,12 @@ get_title_header_html <- function(thdrlst, content_width, rs, talgn = "center") 
 
             tb1 <- get_cell_borders_html(i + alcnt + blcnt, 1,
                                    mx + alcnt + blcnt,
-                                   2, ttlhdr$borders)
+                                   2, ttlhdr$borders,
+                                   border_color = get_style(rs, "border_color"))
             tb2 <- get_cell_borders_html(i + alcnt + blcnt, 2,
                                         mx + alcnt + blcnt,
-                                        2, ttlhdr$borders)
+                                        2, ttlhdr$borders,
+                                        border_color = get_style(rs, "border_color"))
             
             bl <- paste0("<tr><td style=\"text-align:left;", tb1, "\">&nbsp;</td>", 
                          "<td style=\"text-align:right;", tb2, 
@@ -596,9 +609,11 @@ get_title_header_html <- function(thdrlst, content_width, rs, talgn = "center") 
         }
 
         b1 <- get_cell_borders_html(i + alcnt, 1, mx + alcnt + blcnt, 
-                                    2, ttlhdr$borders)
+                                    2, ttlhdr$borders,
+                                    border_color = get_style(rs, "border_color"))
         b2 <- get_cell_borders_html(i + alcnt, 2, mx+ alcnt + blcnt, 
-                                    2, ttlhdr$borders)
+                                    2, ttlhdr$borders,
+                                    border_color = get_style(rs, "border_color"))
 
 
         if (al != "")
@@ -643,8 +658,6 @@ get_title_header_html <- function(thdrlst, content_width, rs, talgn = "center") 
 
 #' Get page by text strings suitable for printing
 #' @import stringi
-#' @param titles Page by object
-#' @param width The width to set the page by strings to
 #' @return A vector of strings
 #' @noRd
 get_page_by_html <- function(pgby, width, value, rs, talgn, ex_brdr = FALSE) {
@@ -694,7 +707,8 @@ get_page_by_html <- function(pgby, width, value, rs, talgn, ex_brdr = FALSE) {
     if (pgby$blank_row %in% c("above", "both")) {
 
       tb <- get_cell_borders_html(1, 1, trows, 1, pgby$borders, 
-                                  exclude = exclude_top)
+                                  exclude = exclude_top, 
+                                  border_color = get_style(rs, "border_color"))
 
       ret[length(ret) + 1] <- paste0("<tr><td style=\"", tb, 
                                      "\">&nbsp;</td></tr>\n")
@@ -702,19 +716,18 @@ get_page_by_html <- function(pgby, width, value, rs, talgn, ex_brdr = FALSE) {
     }
 
     tb <- get_cell_borders_html(brow, 1 , trows, 1, pgby$borders, 
-                                exclude = exclude_top)
+                                exclude = exclude_top, 
+                                border_color = get_style(rs, "border_color"))
 
     ret[length(ret) + 1] <- paste0("<tr><td style=\"", tb, "\">",
                                    pgby$label, encodeHTML(value), "</td></tr>\n")
     cnt <- cnt + 1
 
-    # cnt <- cnt + get_lines_rtf(paste0( pgby$label, ": ", value), width,
-    #                            rs$font, rs$font_size, rs$units)
-
 
     if (pgby$blank_row %in% c("below", "both")) {
 
-      tb <- get_cell_borders_html(trows, 1, trows, 1, pgby$borders)
+      tb <- get_cell_borders_html(trows, 1, trows, 1, pgby$borders, 
+                                  border_color = get_style(rs, "border_color"))
 
       ret[length(ret) + 1] <- paste0("<tr><td style=\"", tb, 
                                      "\">&nbsp;</td></tr>\n")
@@ -746,24 +759,29 @@ get_page_by_html <- function(pgby, width, value, rs, talgn, ex_brdr = FALSE) {
 #' great.
 #' @noRd
  get_cell_borders_html <- function(row, col, nrow, ncol, brdrs, 
-                                  flag = "", exclude = NULL) {
+                                  flag = "", exclude = NULL, 
+                                  border_color = "",
+                                  stub_flag = FALSE) {
   
   t <- ""
   b <- ""
   l <- ""
   r <- ""
   
+  if (border_color == "")
+    border_color <- "black"
+  
   
   if ("all" %in% brdrs) {
-    t <- "border-top:thin solid;"
-    b <- "border-bottom:thin solid;"
-    l <- "border-left:thin solid;"
-    r <- "border-right:thin solid;"
+    t <- paste0("border-top:thin solid ", border_color, ";")
+    b <- paste0("border-bottom:thin solid ", border_color, ";")
+    l <- paste0("border-left:thin solid ", border_color, ";")
+    r <- paste0("border-right:thin solid ", border_color, ";")
     
     if (row > 1)
       t <- ""
     
-    if (col < ncol)
+    if (col < ncol & stub_flag == FALSE)
       r <- ""
     
   } else {
@@ -771,8 +789,8 @@ get_page_by_html <- function(pgby, width, value, rs, talgn, ex_brdr = FALSE) {
     if ("inside" %in% brdrs) {
       
       t <- ""
-      b <- "border-bottom:thin solid;"
-      l <- "border-left:thin solid;"
+      b <- paste0("border-bottom:thin solid ", border_color, ";")
+      l <- paste0("border-left:thin solid ", border_color, ";")
       r <- ""
       
       if (col == 1) 
@@ -790,16 +808,16 @@ get_page_by_html <- function(pgby, width, value, rs, talgn, ex_brdr = FALSE) {
     }
     
     if (row == 1 & any(brdrs %in% c("outside", "top")))
-      t <- "border-top:thin solid;"
+      t <- paste0("border-top:thin solid ", border_color, ";")
     
     if (row == nrow & any(brdrs %in% c("bottom", "outside")))
-      b <- "border-bottom:thin solid;"
+      b <- paste0("border-bottom:thin solid ", border_color, ";")
     
     if (col == 1 & any(brdrs %in% c("outside", "left")))
-      l <- "border-left:thin solid;"
+      l <- paste0("border-left:thin solid ", border_color, ";")
     
     if (col == ncol & any(brdrs %in% c("outside", "right")))
-      r <- "border-right:thin solid;"
+      r <- paste0("border-right:thin solid ", border_color, ";")
     
   }
   
@@ -808,7 +826,7 @@ get_page_by_html <- function(pgby, width, value, rs, talgn, ex_brdr = FALSE) {
   if (!is.null(flag)) {
     if (flag %in% c("L", "B")) {
       
-      if (col != ncol)
+      if (col != ncol & stub_flag == FALSE)
         r <- ""
       
       if (col != 1)

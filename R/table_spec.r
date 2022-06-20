@@ -109,7 +109,8 @@
 #' @param borders Whether and where to place a border. Valid values are 'top',
 #' 'bottom', 'left', 'right', 'all', 'none', 'outside', 'inside', and 'body'.  
 #' Default is 'none'.  The 'left', 'right', 'outside', 'inside', and 'body'
-#' border specifications only apply to RTF and HTML reports.  The 'body' border 
+#' border specifications only apply to RTF, HTML, PDF, and DOCX reports.  
+#' The 'body' border 
 #' specification means put borders around only the body of the table.
 #' @family table
 #' @seealso \code{\link{create_report}} to create a report, 
@@ -434,9 +435,9 @@ define <- function(x, vars, label = NULL, format = NULL,
                    standard_eval = FALSE) {
   
   if (standard_eval) {
-    if (typeof(vars) != "character") {
+    if (!typeof(vars) %in% c("character", "numeric")) {
       
-      stop("Type of vars parameter must be character when standard_eval is TRUE.")
+      stop("Type of vars parameter must be character or numeric when standard_eval is TRUE.")
     }
     
     vars_c <- vars
@@ -517,7 +518,7 @@ define_c <- function(var, label = NULL, format = NULL,
                    page_break = FALSE, indent = NULL, label_row = FALSE) {
   
   
-  if (class(var) != "character")
+  if (!typeof(var) %in% c("character", "numeric"))
     stop("class of var must be character.")
  
   def <- structure(list(), class = c("col_def", "list"))
