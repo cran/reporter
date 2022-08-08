@@ -17,6 +17,7 @@ knitr::opts_chunk$set(
 ### Styles and Themes
 
 The **reporter** package now supports styles and themes for HTML reports.
+Styling for more output types will be supported in future versions.
 
 #### Custom Style
 To create a custom style, use the `create_style()` function.  This function
@@ -241,4 +242,4 @@ Here is a sample of each:
 
 
 
-Next: [Complete Example 1](reporter-example1.html)
+Next: [Example 13: Superscripts and Subscripts](reporter-super.html)

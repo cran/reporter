@@ -923,7 +923,7 @@ test_that("user12: Complex table works as expected.", {
 })
 
 # Also testing alignments and line lengths
-test_that("Simple demographic report with 12 pt font wraps as expected.", {
+test_that("user13: Simple demographic report with 12 pt font wraps as expected.", {
   
 
   
@@ -981,7 +981,7 @@ test_that("Simple demographic report with 12 pt font wraps as expected.", {
   
 
 # Also testing alignments and line lengths
-test_that("Title header alignment works as expected.", {
+test_that("user14: Title header alignment works as expected.", {
   
 
   # Create temporary path
@@ -1033,17 +1033,17 @@ test_that("Title header alignment works as expected.", {
 })
 
 
-test_that("Titles and footnotes only on first last page.", {
+test_that("user15: Titles and footnotes only on first last page.", {
   
   # Create temporary path
   fp <- file.path(base_path, "user/user15")
 
-  ttls <- create_text(" ") %>%
+  ttls <- create_text("  ") %>%
     titles("My Title Only on First Page", blank_row = "none")
   
   tbl <- create_table(iris)
   
-  ftnts <- create_text(" ") %>%
+  ftnts <- create_text("  ") %>%
     footnotes("My Footnote Only on Last Page",
               "Here is another footnote")
   

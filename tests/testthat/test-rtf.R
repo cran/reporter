@@ -1279,3 +1279,4 @@ test_that("rtf38: RTF Image file works as expected.", {
   } else 
     expect_equal(TRUE, TRUE)
 })
+

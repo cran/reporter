@@ -1,3 +1,14 @@
+# reporter 1.3.5
+
+* Fixed several borders-related bugs on RTF, DOCX, and PDF.
+* Fixed valign bug on footnote on RTF.
+* Fixed bug on `create_text()` that was not allowing 
+new line escapes to work properly.
+* Added `ttl()`, `ftn()`, and `span()` attribute functions.
+Used by other r-sassy packages to create reports.
+* Moved some examples to **sassy** package to reduce size.
+* Documentation fixes and updates.
+
 # reporter 1.3.3
 
 * Fixed bug on DOCX that was causing R Studio to crash when using a relative path.
