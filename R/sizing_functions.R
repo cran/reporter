@@ -96,7 +96,7 @@ get_data_subset <- function(dat, keys, pages) {
 
 #' Gets the page wraps for both text and variable width reports
 #' @noRd
-get_page_wraps <- function(content_width, ts, widths, gutter) {
+get_page_wraps <- function(content_width, ts, widths, gutter, control_cols) {
   
   defs <- ts$col_defs
   
@@ -218,7 +218,7 @@ prep_data <- function(dat, ts, char_width, missing_val) {
   for (def in defs) {
 
     if (def$blank_after)
-      ls[length(ls) + 1] <- def$var_c
+      ls[length(ls) + 1] <- translate_invisible(def$var_c, names(dat))
   }
 
   # Add blanks on requested columns
@@ -305,11 +305,21 @@ create_stub <- function(dat, ts) {
     st <- dat[[v[1]]]
     #print(st)
     
+    nms <- names(dat)
+    
     # For each subsequent column, if the value is not NA,
     # replace first column value.
     for (i in seq(from = 2, to = length(v), by = 1)) {
       
-      st <- ifelse(is.na(dat[[v[i]]]) | trimws(dat[[v[i]]]) == "", st, dat[[v[i]]])    
+      if ("..blank" %in% nms) {
+        st <- ifelse(is.na(dat[[v[i]]]) | (trimws(dat[[v[i]]]) == "" & dat[["..blank"]] == "L"), 
+                   st, dat[[v[i]]])   
+      } else {
+        st <- ifelse(is.na(dat[[v[i]]]), st, dat[[v[i]]])  
+      }
+      
+      # Allow empty to remain.  Sure I put this in for a reason.  Need to test.
+      #st <- ifelse(is.na(dat[[v[i]]]) | trimws(dat[[v[i]]]) == "", st, dat[[v[i]]])    
       
     }
 
@@ -337,8 +347,9 @@ create_stub <- function(dat, ts) {
 # @import graphics
 #' @import stringi
 #' @noRd
-get_col_widths <- function(dat, ts, labels, char_width, uom) {
-  
+get_col_widths <- function(dat, ts, labels, char_width, uom, 
+                           merge_label_row = TRUE) {
+
   defs <- ts$col_defs
   if (uom == "cm") {
     #12.7
@@ -365,11 +376,20 @@ get_col_widths <- function(dat, ts, labels, char_width, uom) {
     if (is.control(nm) | all(is.na(dat[[nm]]) == TRUE))
       w <- 0
     else {
+      
+      # Clear out label rows, as these can mess up column width calculations.
+      # Label row widths are dealt with later.
+      if ("..blank" %in% names(dat) & merge_label_row) {
+        colattr <- attributes(dat[[nm]])
+        dat[[nm]] <- ifelse(dat[["..blank"]] %in% c("L", "B"), " ", dat[[nm]])
+        attributes(dat[[nm]]) <- colattr
+      }
+      
       w <- max(nchar(as.character(dat[[nm]])), na.rm = TRUE) * char_width
       
       sd <- stri_split(as.character(dat[[nm]]), regex=" |\n|\r|\t", simplify = TRUE)
       mwidths[[nm]]  <- max(nchar(as.character(sd)), na.rm = TRUE) * char_width 
-      
+
     }
      
     if (w > max_col_width)
@@ -532,7 +552,8 @@ get_col_widths <- function(dat, ts, labels, char_width, uom) {
 #' @import stringi
 #' @noRd
 get_col_widths_variable <- function(dat, ts, labels, font, 
-                               font_size, uom, gutter_width) {
+                               font_size, uom, gutter_width,
+                               merge_label_row = TRUE) {
   
   
   defs <- ts$col_defs
@@ -560,6 +581,13 @@ get_col_widths_variable <- function(dat, ts, labels, font,
     if (is.control(nm) | all(is.na(dat[[nm]]) == TRUE))
       w <- 0
     else {
+      
+      # Clear out label rows, as these can mess up column width calculations.
+      # Label row widths are dealt with later.
+      if ("..blank" %in% names(dat) & merge_label_row) {
+        dat[[nm]] <- ifelse(dat[["..blank"]] %in% c("L", "B"), " ", dat[[nm]])
+      }
+      
       w <-  max(get_text_width(dat[[nm]], units=uom, font=font, font_size = font_size))
       
       sd <- stri_split(as.character(dat[[nm]]), regex=" |\n|\r|\t", simplify = TRUE)
@@ -936,7 +964,7 @@ get_labels <- function(dat, ts){
 #'
 #' @param x The Table spec object
 #' @noRd
-get_table_cols <- function(x) {
+get_table_cols <- function(x, control_cols) {
   
   dat <- x$data
   
@@ -1016,6 +1044,12 @@ get_splits_text <- function(x, widths, page_size, lpg_rows,
   # Perform column deduping
   ret <- dedupe_pages(ret, defs)
   
+  # Dedupe stub if child column dedupe was requested.
+  # Somewhat unsure of this.
+  if (stub_dedupe(ts$stub, defs)) {
+    sdef <- define_c("stub", dedupe = TRUE)
+    ret <- dedupe_pages(ret, list(sdef))
+  }
 
   
   return(ret)
@@ -1138,7 +1172,21 @@ get_page_breaks <- function(x, page_size, lpg_rows, content_offsets,
 
 
 
-
+stub_dedupe <- function(stb, defs) {
+  
+  ret <- FALSE
+  
+  for (df in defs) {
+    
+    if (df$var_c %in% stb$vars) {
+      if (df$dedupe == TRUE & df$label_row == FALSE) {
+        ret <- TRUE
+      }
+    }
+  }
+  
+  return(ret)
+}
 
 
 

@@ -5,6 +5,8 @@ base_path <- "c:/packages/reporter/tests/testthat"
 
 base_path <- tempdir()
 
+options("logr.output" = FALSE)
+
 test_that("test1: Simplest table works as expected.", {
   
   
@@ -2452,4 +2454,391 @@ test_that("test74: Table Borders with ttls/fnts on report works as expected.", {
   expect_equal(length(lns), res$pages * res$line_count)
   
 })
+
+
+test_that("test75: Label row is one cell.", {
+  
+  
+  fp <- file.path(base_path, "output/test75.out")
+  
+  
+  # Read in prepared data
+  df <- read.table(header = TRUE, text = '
+      var     label        A             B          
+      "ampg"   "N"          "19"          "13"         
+      "ampg"   "Mean"       "18.8 (6.5)"  "22.0 (4.9)" 
+      "ampg"   "Median"     "16.4"        "21.4"       
+      "ampg"   "Q1 - Q3"    "15.1 - 21.2" "19.2 - 22.8"
+      "ampg"   "Range"      "10.4 - 33.9" "14.7 - 32.4"
+      "cyl"    "8 Cylinder" "10 ( 52.6%)" "4 ( 30.8%)" 
+      "cyl"    "6 Cylinder" "4 ( 21.1%)"  "3 ( 23.1%)" 
+      "cyl"    "4 Cylinder" "5 ( 26.3%)"  "6 ( 46.2%)"')
+  
+  ll <- "Here is a super long label to see if it can span the entire table."
+  
+  # Create table
+  tbl <- create_table(df, first_row_blank = TRUE) %>% 
+    stub(c("var", "label")) %>% 
+    define(var, blank_after = TRUE, label_row = TRUE, 
+           format = c(ampg = ll, cyl = "Cylinders")) %>% 
+    define(label, indent = .25) %>% 
+    define(A, label = "Group A", width = 1.25, align = "center", n = 19) %>% 
+    define(B, label = "Group B",  width = 1.25,  align = "center", n = 13)
+  
+  
+  # Create report and add content
+  rpt <- create_report(fp, orientation = "landscape", output_type = "TXT") %>% 
+    page_header(left = "Client: Motor Trend", right = "Study: Cars") %>% 
+    titles("Table 1.0", "MTCARS Summary Table") %>% 
+    add_content(tbl) %>% 
+    footnotes("* Motor Trend, 1974") %>%
+    page_footer(left = "Left", 
+                center = "Confidential", 
+                right = "Page [pg] of [tpg]")
+  
+  
+  
+  res <- write_report(rpt)
+  res
+  expect_equal(file.exists(fp), TRUE)
+  
+  
+})
+
+test_that("test76: Page break on invisible column.", {
+  
+  fp <- file.path(base_path, "output/test76.out")
+  
+  dat <- iris
+  dat$Sequence <- seq(1, nrow(iris))
+  
+  tbl <- create_table(dat, borders = "all") %>%
+    define(Species, page_break = TRUE, visible = FALSE)
+  
+  rpt <- create_report(fp) %>%
+    page_header("Left", "Right") %>% 
+    add_content(tbl) %>% 
+    page_footer("left", "", "right") %>% 
+    titles("Table 1.0", "IRIS Data Frame",
+           blank_row = "below") %>% 
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+  lns <- readLines(fp)
+  
+  expect_equal(length(lns), res$pages * res$line_count)
+  
+})
+
+test_that("test77: Blank after on invisible column.", {
+
+  fp <- file.path(base_path, "output/test77.out")
+
+  tbl <- create_table(iris, borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+
+  rpt <- create_report(fp) %>%
+    page_header("Left", "Right") %>%
+    add_content(tbl) %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0", "IRIS Data Frame",
+           blank_row = "below") %>%
+    footnotes("Here is a footnote", "And another")
+
+
+  res <- write_report(rpt)
+
+  expect_equal(file.exists(fp), TRUE)
+
+  lns <- readLines(fp)
+  
+  expect_equal(length(lns), res$pages * res$line_count)
+})
+
+
+
+test_that("test78: Blank nested stub works as expected.", {
+  
+  
+  fp <- file.path(base_path, "output/test78.out")
+  
+  
+  # Read in prepared data
+  df <- read.table(header = TRUE, text = '
+      var     label        A             B          
+      "ampg"   "Stats"    "19"          "13"         
+      "ampg"   "Stats"    "18.8 (6.5)"  "22.0 (4.9)" 
+      "ampg"   "Stats"    "16.4"        "21.4"       
+      "ampg"   "Stats"    "15.1 - 21.2" "19.2 - 22.8"
+      "ampg"   "Stats"      "10.4 - 33.9" "14.7 - 32.4"
+      "cyl"    "8 Cylinder" "10 ( 52.6%)" "4 ( 30.8%)" 
+      "cyl"    "" "4 ( 21.1%)"  "3 ( 23.1%)" 
+      "cyl"    "" "5 ( 26.3%)"  "6 ( 46.2%)"')
+  
+  ll <- "Here is a super long label to see if it can span the entire table."
+  
+  # Create table
+  tbl <- create_table(df, first_row_blank = TRUE, borders = c("all")) %>% 
+    stub(c("var", "label")) %>% 
+    define(var, blank_after = TRUE, label_row = TRUE, 
+           format = c(ampg = ll, cyl = "Cylinders")) %>% 
+    define(label, indent = .25, dedupe = TRUE) %>% 
+    define(A, label = "Group A", align = "center", n = 19) %>% 
+    define(B, label = "Group B", align = "center", n = 13)
+  
+  
+  # Create report and add content
+  rpt <- create_report(fp, orientation = "portrait") %>% 
+    page_header(left = "Client: Motor Trend", right = "Study: Cars") %>% 
+    titles("Table 1.0", "MTCARS Summary Table") %>% 
+    add_content(tbl) %>% 
+    footnotes("* Motor Trend, 1974") %>%
+    page_footer(left = "Left", 
+                center = "Confidential", 
+                right = "Page [pg] of [tpg]")
+  
+  
+  
+  res <- write_report(rpt)
+  res
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("test79: Page header width works.", {
+  
+  fp <- file.path(base_path, "output/test79.out")
+  
+  tbl <- create_table(iris[1:10, ], borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  rpt <- create_report(fp) %>%
+    page_header(paste0("Left and here is a really long left ",
+                       "cell text to put it and more and more"), 
+                "Right", width = 8) %>%
+    add_content(tbl) %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0", "IRIS Data Frame",
+           blank_row = "below") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+
+test_that("test80: Carriage return in label row works.", {
+  
+  
+  fp <- file.path(base_path, "output/test80.out")
+  
+  
+  # Read in prepared data
+  df <- read.table(header = TRUE, text = '
+      var     label        A             B          
+      "ampg"   "N"          "19"          "13"         
+      "ampg"   "Mean"       "18.8 (6.5)"  "22.0 (4.9)" 
+      "ampg"   "Median"     "16.4"        "21.4"       
+      "ampg"   "Q1 - Q3"    "15.1 - \n21.2" "19.2 - 22.8"
+      "ampg"   "Range"      "10.4 - 33.9" "14.7 - 32.4"
+      "cyl"    "8 Cylinder" "10 ( 52.6%)" "4 ( 30.8%)" 
+      "cyl"    "6 Cylinder" "4 ( 21.1%)"  "3 ( 23.1%)" 
+      "cyl"    "4 Cylinder" "5 ( 26.3%)"  "6 ( 46.2%)"')
+  
+  ll <- "Here is a super long label to \nsee if it can span\nthe entire table."
+  
+  # Create table
+  tbl <- create_table(df, first_row_blank = TRUE, borders = c("all")) %>% 
+    stub(c("var", "label")) %>% 
+    define(var, blank_after = TRUE, label_row = TRUE, 
+           format = c(ampg = ll, cyl = "Cylinders")) %>% 
+    define(label, indent = .25) %>% 
+    define(A, label = "Group A", align = "center", n = 19) %>% 
+    define(B, label = "Group B", align = "center", n = 13)
+  
+  
+  # Create report and add content
+  rpt <- create_report(fp, orientation = "portrait") %>% 
+    page_header(left = "Client: Motor Trend", right = "Study: Cars") %>% 
+    titles("Table 1.0", "MTCARS Summary Table") %>% 
+    add_content(tbl) %>% 
+    footnotes("* Motor Trend, 1974") %>%
+    page_footer(left = "Left", 
+                center = "Confidential", 
+                right = "Page [pg] of [tpg]")
+  
+  
+  
+  res <- write_report(rpt)
+  res
+  expect_equal(file.exists(fp), TRUE)
+  
+  
+})
+
+test_that("test81: Glue feature works.", {
+  
+  library(common)
+  
+  fp <- file.path(base_path, "output/test81.out")
+  
+  tbl <- create_table(mtcars[1:10, ], borders = "all") %>%
+    spanning_header(1, 4, label = "My span{subsc('4')}") %>%
+    define(mpg, label = "Mpg{subsc('3')}")
+  
+  myvar <- "23"
+  
+  rpt <- create_report(fp) %>%
+    page_header(c("Left {supsc('2')}really long left ",
+                       "cell text to put it{supsc('3')} and more and more"), 
+                "Right{supsc('x')}") %>%
+    add_content(tbl) %>%
+    page_footer(c("left1{supsc('5')}", "left2{supsc('6')}"), "", 
+                 "right{supsc('7')}") %>%
+     titles("Table 1.0{supsc('1')}", "IRIS Data Frame{{myvar}}",
+            blank_row = "below") %>%
+     footnotes("Here is a footnote{subsc('a')}", "And another{subsc('9')}")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+
+    
+})
+
+
+
+test_that("test82: Title columns work 1 column.", {
+  
+  fp <- file.path(base_path, "output/test82.out")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all")  %>%
+    titles("Table 1.0 second row", "IRIS Data Frame3",
+           blank_row = "both", columns =  1, align = "center",
+           borders = c("outside")) 
+  
+  rpt <- create_report(fp, output_type = "TXT") %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("test83: Title columns work 2 columns.", {
+  
+  fp <- file.path(base_path, "output/test83.out")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all") %>%
+    titles("Table 1.0", "IRIS Data Frame", "Left", "Right",
+           blank_row = c("below"), columns =  2, borders = "none")
+  
+  rpt <- create_report(fp, output_type = "TXT") %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right")  %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("test84: Title columns work 3 columns.", {
+  
+  fp <- file.path(base_path, "output/test84.out")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  rght <- paste("Here")
+  
+  rpt <- create_report(fp, output_type = "TXT", 
+                       font_size = 10) %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0", "IRIS Data Frame", 
+           "My right thing", "", "Center", rght,
+           blank_row = "below", columns =  3, borders = "top") %>%
+    footnotes("Here is a footnote", "And another", "A",
+              "Here is a longer footnote to see if I can figure out the alignment pattern.",
+              align = "right")
+  
+  
+  res <- write_report(rpt)
+  res
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("test85: Multiple title blocks work as expected.", {
+  
+  fp <- file.path(base_path, "output/test85.out")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  rpt <- create_report(fp, output_type = "TXT") %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0", "IRIS Data Frame",
+           blank_row = "below", columns =  1, align = "center", width = 7,
+           borders = "all") %>%
+    titles("Table 2.0", "IRIS Data Frame2", "Left", "Right",
+           blank_row = "below", columns =  2, borders = "all") %>%
+    titles("Table 3.0", "IRIS Data Frame3", "My right thing", "", "Center",
+           blank_row = "below", columns =  3, borders = "all") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("test86: Titles can be passed as a vector.", {
+  
+  fp <- file.path(base_path, "output/test86.out")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  ttl <- c("Title1", "Title2", "Title3")
+  
+  rpt <- create_report(fp, output_type = "TXT") %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right") %>%
+    titles(ttl,
+           blank_row = "below", columns =  1, align = "center", width = 7,
+           borders = "none") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
 

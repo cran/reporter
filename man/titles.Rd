@@ -12,7 +12,9 @@ titles(
   borders = "none",
   width = NULL,
   bold = FALSE,
-  font_size = NULL
+  font_size = NULL,
+  header = FALSE,
+  columns = 1
 )
 }
 \arguments{
@@ -54,6 +56,19 @@ PDF, and DOCX output types.}
 of the report will be used by default.  Valid values are 8, 9, 10, 11, 12,
 13, and 14.  This parameter only applies to variable-width RTF, HTML, PDF,
 and DOCX output types.}
+
+\item{header}{Whether to put the titles in the page header. Valid values
+are TRUE and FALSE.  Default is FALSE. This option only works on the RTF 
+and DOCX output types, and only applies to titles assigned 
+to the report object.  Titles in the page header will appear on every page, 
+and be the same throughout the report.}
+
+\item{columns}{The number of columns for the title block. Valid values
+are 1, 2, and 3.  Default is 1.  If this parameter is set to 2, the title
+block will be split into two columns, each aligned to the outside.  If 
+this parameter is set to 3, the title block will be split into 3 columns,
+with the outer columns aligned to the outside and the middle column
+aligned center.  Titles are assigned to cells from top left to bottom right.}
 }
 \value{
 The modified report.

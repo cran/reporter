@@ -1,3 +1,19 @@
+# reporter 1.3.6
+
+* Added option to `write_report()` to turn off logging if desired.
+* Added "header_bold" parameter to `create_table()` to bold the header.
+* Added "header" parameter to `titles()` to put the title in the page header.
+* Added "footer" parameter to `footnotes()` to put the footnotes in the
+page footer.
+* Fixed bug when trying to create blank rows on an invisible column.
+* Fixed bug when trying to dedupe columns in stub.
+* Added glue functionality to titles, footnotes, page header, page footer, 
+and column labels.  
+* Added "columns" parameter on `titles()` function to allow the title
+block to have between 1 and 3 columns.  
+* Fixed some bugs on PDF borders.
+* Updated logo.
+
 # reporter 1.3.5
 
 * Fixed several borders-related bugs on RTF, DOCX, and PDF.

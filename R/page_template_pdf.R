@@ -58,6 +58,17 @@ get_page_header_pdf <- function(rs) {
   lh <- rs$row_height
   
   rb <- rs$content_size[["width"]] 
+  
+  # User controlled width of left column
+  lwdth <- rs$page_header_width
+  if (is.null(lwdth))
+    lwdth <- rs$content_size[["width"]]/2
+  
+  # Calculate right column width
+  rwdth <- rs$content_size[["width"]] - lwdth
+  # lpct <- round(5000 * lwdth / rs$content_size[["width"]])
+  # rpct <- round(5000 * rwdth / rs$content_size[["width"]])
+  
 
   maxh <- max(length(hl), length(hr))
 
@@ -75,7 +86,7 @@ get_page_header_pdf <- function(rs) {
       if (length(hl) >= i) {
 
         # Split strings if they exceed width
-        tmp <- split_string_text(hl[[i]], rs$content_size[["width"]]/2, rs$units)
+        tmp <- split_string_text(hl[[i]], lwdth, rs$units)
         
         
         for (ln in seq_len(tmp$lines)) {
@@ -101,7 +112,7 @@ get_page_header_pdf <- function(rs) {
       if (length(hr) >= i) {
 
         # Split strings if they exceed width
-        tmp2 <- split_string_text(hr[[i]], rs$content_size[["width"]]/2, rs$units)
+        tmp2 <- split_string_text(hr[[i]], rwdth, rs$units)
 
         for (ln in seq_len(tmp2$lines)) {
           ret[[length(ret) + 1]] <- page_text(tmp2$text[ln], rs$font_size, 
@@ -316,14 +327,20 @@ get_titles_pdf <- function(ttllst, content_width, rs,
   border_flag <- FALSE
   lh <- rs$line_height
 
-
   start_offset <- NULL
   
   yline <- ystart 
 
   if (length(ttllst) > 0) {
+    
+    blkcnt <- 0
 
     for (ttls in ttllst) {
+      
+      blkcnt <- blkcnt + 1
+      
+      cols <- ttls$columns
+      
 
       if (ttls$width == "page")
         width <- rs$content_size[["width"]]
@@ -331,6 +348,8 @@ get_titles_pdf <- function(ttllst, content_width, rs,
         width <- content_width
       else if (is.numeric(ttls$width))
         width <- ttls$width
+      
+      cwidth <- width / cols
 
       # Get content alignment codes
       if (talgn == "right") {
@@ -352,17 +371,408 @@ get_titles_pdf <- function(ttllst, content_width, rs,
       
       lho <- get_line_height_pdf(fs)
       lh <- lho
-      if (any(ttls$borders %in% c("all", "inside")))
+      if (any(ttls$borders %in% c("all", "inside", "outside")))
           lh <- lh + bh
 
       # Open device context
       pdf(NULL)
       par(family = get_font_family(rs$font), ps = fs)
+      
+      brdrs <- strip_borders(ttls$borders)
+      
+      if (blkcnt == 1) {
+        
+        start_offset <- lho - rs$row_height
+        
+        if (any(brdrs %in% c("all", "outside", "top"))) {
+          yline <- ystart + start_offset + bh
+        } else {
+          yline <- ystart + start_offset
+        }
+        
+      }
+      
 
+      
+      # Extra line for blank row
+      if (any(ttls$blank_row %in% c("above", "both"))) {
+        
+        
+        if (any(brdrs %in% c("all", "outside", "top"))) {
+          
+          ret[[length(ret) + 1]] <- page_hline(lb * conv,
+                                               yline - lh + bs + 1,
+                                               (rb - lb) * conv)
+          
+          if (blkcnt == 1 & any(brdrs %in% c("outside")))
+            pnts <- pnts + bs
+        }
+        
+        
+        
+        if (any(brdrs %in% c("all", "outside", "left", "right"))) {
+          ret[[length(ret) + 1]] <- page_vline(lb * conv,
+                                               yline - lh + bs + 1,
+                                               (1 * lh) )
+          
+          ret[[length(ret) + 1]] <- page_vline(rb * conv,
+                                               yline - lh + bs + 1,
+                                               (1 * lh))
+        }
+        
+        yline <- yline + lh
+        cnt <- cnt + 1
+        pnts <- pnts + lh
+        
+        
+        if (any(brdrs %in% c("all", "inside")) ) {
+
+          ret[[length(ret) + 1]] <- page_hline(lb * conv,
+                                               yline - lh + bs + 1,
+                                               (rb - lb) * conv)
+          if (blkcnt == 1)
+            pnts <- pnts + bs
+
+        }
+      } else if (any(brdrs %in% c("all", "outside", "top")) ) {
+
+          ret[[length(ret) + 1]] <- page_hline(lb * conv,
+                                               yline - lh + bs + 1,
+                                               (rb - lb) * conv)
+          if (blkcnt == 1)
+            pnts <- pnts + bs
+
+      }
+      
+      
+      i <- 1
+      
+      while (i <= length(ttls$titles)) {
+        
+        # Max lines per row
+        mxlns <- 0
+        
+        # Calculate current row
+        rw <- ceiling(i / cols)
+        
+
+        for (j in seq_len(cols)) { 
+          
+          # Not all cells have titles
+          if (i > length(ttls$titles))
+            vl <- ""
+          else 
+            vl <- ttls$titles[[i]]
+          
+          # Deal with column alignments
+          if (cols == 1) {
+            calgn <- ttls$align
+          } else if (cols == 2) {
+            if (j == 1)
+              calgn <- "left"
+            else 
+              calgn <- "right"
+          } else if (cols == 3) {
+            if (j == 1)
+              calgn <- "left"
+            else if (j == 2)
+              calgn <- "center"
+            else if (j == 3) 
+              calgn <- "right"
+          }
+            
+          
+          # Split title strings if they exceed width
+          tmp <- split_string_text(vl, cwidth, rs$units)
+          
+          if (tmp$lines > mxlns)
+            mxlns <- tmp$lines
+          
+
+          
+          # Recalculate boundaries for cells
+          clb <- lb + (cwidth * (j - 1))
+          crb <- clb + cwidth
+          
+          # Row within cell pointer
+          rwln <- 0
+          
+          for (ln in seq_len(tmp$lines)) {
+            
+            # print(yline) 
+            ret[[length(ret) + 1]] <- page_text(tmp$text[ln], fs, 
+                                                bold = ttls$bold,
+                                                xpos = get_points(clb, 
+                                                                  crb,
+                                                                  tmp$widths[ln],
+                                                                  units = rs$units,
+                                                                  align = calgn),
+                                                ypos = yline + rwln)
+            rwln <- rwln + lh
+          }
+          
+
+
+          
+          i <- i + 1
+        }
+        
+        
+        if (any(brdrs %in% c("all", "inside")) & cols > 1) {
+          
+          for (z in seq_len(cols - 1)) {
+            ret[[length(ret) + 1]] <- page_vline((lb + (z * cwidth)) * conv,
+                                                 yline - lh + bs + 1,
+                                                 mxlns * lh)
+          }
+        }
+        
+        
+        # Left border
+        if (any(brdrs %in% c("all", "outside", "left"))) {
+
+
+          ret[[length(ret) + 1]] <- page_vline(lb * conv,
+                                               yline - lh + bs + 1,
+                                               (mxlns * lh) )
+
+        }
+
+        # Right border
+        if (any(brdrs %in% c("all", "outside", "right"))) {
+
+
+          ret[[length(ret) + 1]] <- page_vline(rb * conv,
+                                               yline - lh + bs + 1,
+                                               (mxlns * lh))
+
+        }
+        
+        
+        yline <- yline + (lh * mxlns)
+        pnts <- pnts + (lh * mxlns)
+        
+        # Inside borders
+        if (any(brdrs %in% c("all", "inside")) & i > 1) {
+          
+          ret[[length(ret) + 1]] <- page_hline(lb * conv, 
+                                               yline - lh + bs + 1, 
+                                               (rb - lb) * conv) 
+        }
+
+        cnt <- cnt + mxlns
+
+      }
+      
+      # Extra border for blank line below
+      if (any(ttls$blank_row %in% c("below", "both"))) {
+        
+        if (any(brdrs %in% c("all", "inside"))) {
+          
+          ret[[length(ret) + 1]] <- page_hline(lb * conv, 
+                                               yline - lh + bs + 1, 
+                                               (rb - lb) * conv) 
+        }
+        
+        if (any(brdrs %in% c("all", "outside", "bottom"))) {
+          
+          ret[[length(ret) + 1]] <- page_hline(lb * conv, 
+                                               yline + bs + 1, 
+                                               (rb - lb) * conv) 
+          
+          # if (blkcnt == 1 & brdrs %in% c("outside"))
+          #    pnts <- pnts + bh + bh + 1
+        }
+          
+        if (any(brdrs %in% c("all", "outside", "left", "right"))) {
+          ret[[length(ret) + 1]] <- page_vline(lb * conv,
+                                               yline - lh + bs + 1,
+                                               (1 * lh) )
+          
+          ret[[length(ret) + 1]] <- page_vline(rb * conv,
+                                               yline - lh + bs + 1,
+                                               (1 * lh))
+          
+        }
+        
+        
+        yline <- yline + lh
+        cnt <- cnt + 1
+        pnts <- pnts + lh
+      } else {
+        #pnts <- pnts + .5 # no idea why
+      }
+      
+      if (any(brdrs %in% c("outside", "all", "bottom")))
+        border_flag <- TRUE
+      
+      dev.off()
+      
+
+      # if (blkcnt == 1) {
+      #   ypos <-  ystart + start_offset - lho + bs + 1 
+      #   lcnt <- cnt
+      #   blkrws[blkcnt] <- cnt
+      # } else {
+      #   
+      #   blkrws[blkcnt] <- cnt - lcnt
+      #   ypos <- ypos + (blkrws[blkcnt - 1] * lh)
+      #   lcnt <- cnt
+      # }
+      # 
+      # 
+      # badj <- 0
+      # if (lh == lho & any(brdrs %in% c("bottom", "outside"))) {
+      #   badj <- bh
+      # }
+      
+      # print("ypos")
+      # print(ypos)
+      
+      # Top border
+      # if (any(brdrs %in% c("all", "outside", "top"))) {
+      #   
+      #   ret[[length(ret) + 1]] <- page_hline(lb * conv, 
+      #                                        ypos , 
+      #                                        (rb - lb) * conv) 
+      #   if (blkcnt == 1)
+      #     pnts <- pnts + bs
+      #   
+      # }
+      # 
+      # # Bottom border
+      # if (any(brdrs %in% c("all", "outside", "bottom"))) {
+      #   
+      #     
+      #     ret[[length(ret) + 1]] <- page_hline(lb * conv, 
+      #                                          ypos + (blkrws * lh) + badj, 
+      #                                          (rb - lb) * conv) 
+      #     if (blkcnt == 1)
+      #       pnts <- pnts + badj
+      #     #pnts <- pnts + 2
+      #     border_flag <- TRUE
+      #   
+      # }
+      # 
+      # # Left border
+      # if (any(brdrs %in% c("all", "outside", "left"))) {
+      #   
+      #   
+      #   ret[[length(ret) + 1]] <- page_vline(lb * conv, 
+      #                                        ypos, 
+      #                                        (blkrws * lh) + badj) 
+      #   
+      # }
+      # 
+      # # Right border
+      # if (any(brdrs %in% c("all", "outside", "right"))) {
+      #   
+      #   
+      #   ret[[length(ret) + 1]] <- page_vline(rb * conv, 
+      #                                        ypos, 
+      #                                        (blkrws * lh) + badj) 
+      #   
+      # }
+      # 
+      # if (any(brdrs %in% c("all", "inside")) & cols > 1) {
+      #   
+      #   
+      #   for (k in seq_len(cols - 1)) {
+      #   
+      #     ret[[length(ret) + 1]] <- page_vline((lb + (cwidth * k)) * conv, 
+      #                                          ypos, 
+      #                                          (blkrws * lh) + badj) 
+      #   }
+      #   
+      # }
+      
+
+    }
+    
+    
+
+
+  }
+
+  # pnts <- (cnt * lh) + start_offset - .5
+  
+  #pnts <- pnts + start_offset
+  #print(pnts)
+  cnts <- pnts / rs$row_height
+  
+  res <- list(pdf = ret, 
+              lines = cnts,
+              points = pnts,
+              border_flag = border_flag)
+  
+  return(res)
+}
+
+
+#' @import grDevices
+#' @noRd
+get_titles_pdf_back <- function(ttllst, content_width, rs, 
+                           talgn = "center", ystart = 0) {
+  
+  ret <- c()
+  cnt <- 0
+  pnts <- 0
+  #print(ystart)
+  #print("get titles")
+  
+  conv <- rs$point_conversion
+  bs <- rs$border_spacing
+  bh <- rs$border_height
+  border_flag <- FALSE
+  lh <- rs$line_height
+  
+  
+  start_offset <- NULL
+  
+  yline <- ystart 
+  
+  if (length(ttllst) > 0) {
+    
+    for (ttls in ttllst) {
+      
+      if (ttls$width == "page")
+        width <- rs$content_size[["width"]]
+      else if (ttls$width == "content")
+        width <- content_width
+      else if (is.numeric(ttls$width))
+        width <- ttls$width
+      
+      # Get content alignment codes
+      if (talgn == "right") {
+        lb <- rs$content_size[["width"]] - width
+        rb <- rs$content_size[["width"]]
+      } else if (talgn %in% c("center", "centre")) {
+        lb <- (rs$content_size[["width"]] - width) / 2
+        rb <- width + lb
+      } else {
+        lb <- 0
+        rb <- width
+      }
+      
+      border_flag <- FALSE
+      
+      fs <- rs$font_size
+      if (!is.null(ttls$font_size))
+        fs <- ttls$font_size
+      
+      lho <- get_line_height_pdf(fs)
+      lh <- lho
+      if (any(ttls$borders %in% c("all", "inside")))
+        lh <- lh + bh
+      
+      # Open device context
+      pdf(NULL)
+      par(family = get_font_family(rs$font), ps = fs)
+      
       for (i in seq_along(ttls$titles)) {
-
+        
         brdrs <- strip_borders(ttls$borders)
-
+        
         if (i == 1) {
           
           if (is.null(start_offset)) {
@@ -379,10 +789,10 @@ get_titles_pdf <- function(ttllst, content_width, rs,
           
           # Extra line for blank row
           if (any(ttls$blank_row %in% c("above", "both"))) {
-
+            
             
             if (any(brdrs %in% c("all", "inside"))) {
-
+              
               ret[[length(ret) + 1]] <- page_hline(lb * conv,
                                                    yline + bs,
                                                    (rb - lb) * conv)
@@ -393,11 +803,11 @@ get_titles_pdf <- function(ttllst, content_width, rs,
             pnts <- pnts + lh
           }
         }
-
-
+        
+        
         # Split title strings if they exceed width
         tmp <- split_string_text(ttls$titles[[i]], width, rs$units)
-
+        
         # Inside borders
         if (any(brdrs %in% c("all", "inside")) & i > 1) {
           
@@ -443,11 +853,11 @@ get_titles_pdf <- function(ttllst, content_width, rs,
             border_flag <- TRUE
         }
         
-
         
-
+        
+        
         cnt <- cnt + tmp$lines
-
+        
       }
       dev.off()
       
@@ -474,14 +884,14 @@ get_titles_pdf <- function(ttllst, content_width, rs,
       # Bottom border
       if (any(brdrs %in% c("all", "outside", "bottom"))) {
         
-          
-          ret[[length(ret) + 1]] <- page_hline(lb * conv, 
-                                               ypos + (cnt * lh) + badj, 
-                                               (rb - lb) * conv) 
-          
-          pnts <- pnts + badj
-          #pnts <- pnts + 2
-          border_flag <- TRUE
+        
+        ret[[length(ret) + 1]] <- page_hline(lb * conv, 
+                                             ypos + (cnt * lh) + badj, 
+                                             (rb - lb) * conv) 
+        
+        pnts <- pnts + badj
+        #pnts <- pnts + 2
+        border_flag <- TRUE
         
       }
       
@@ -504,14 +914,14 @@ get_titles_pdf <- function(ttllst, content_width, rs,
                                              (cnt * lh) + badj) 
         
       }
-
+      
     }
     
     
-
-
+    
+    
   }
-
+  
   # pnts <- (cnt * lh) + start_offset - .5
   
   #pnts <- pnts + start_offset

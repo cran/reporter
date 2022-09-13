@@ -1855,7 +1855,7 @@ test_that("rtf2-52: Table with break between sections works as expected.", {
     titles("Table 1.0", "MTCARS Summary Table") %>% 
     add_content(tbl) %>% 
     footnotes("* Motor Trend, 1974") %>%
-    page_footer(left = Sys.time(), 
+    page_footer(left = "Left", 
                 center = "Confidential", 
                 right = "Page [pg] of [tpg]")
   
@@ -1883,18 +1883,465 @@ test_that("rtf2-53: Text with line feed works as expected.", {
   res <- write_report(rpt)
   
   expect_equal(file.exists(fp), TRUE)
-  
-  lns <- readLines(fp)
-  
   expect_equal(res$pages, 1)
 })
 
+
+test_that("rtf2-54: Header_bold works as expected", {
+  
+  dat <- mtcars[1:10, 1:3]
+  
+  fp <- file.path(base_path, "rtf2/test54.rtf")
+  
+  tbl <- create_table(dat, header_bold = TRUE, borders = "all") %>%
+    column_defaults(width = 1) %>%
+    titles("Report 1.0", "Simple Report", borders = "outside", 
+           blank_row = "none", bold = TRUE) %>%
+    footnotes("My footnote", blank_row = "none")
+  
+  rpt <- create_report(fp, orientation = "portrait",
+                       output_type = "RTF", font = "Arial") %>%
+    add_content(tbl) %>%
+    set_margins(top = 1)
+  
+  res <- write_report(rpt)
+
+  expect_equal(file.exists(fp), TRUE)
+  expect_equal(res$pages, 1)
+  
+})
+
+test_that("rtf2-55: Titles and footnotes in header and footer works as expected", {
+  
+  dat <- mtcars[1:10, 1:3]
+  
+  fp <- file.path(base_path, "rtf2/test55.rtf")
+  
+  tbl <- create_table(dat) %>%
+    column_defaults(width = 1) 
+  
+  rpt <- create_report(fp, orientation = "landscape",
+                       output_type = "RTF", font = "Arial") %>%
+    add_content(tbl) %>%
+    set_margins(top = 1, bottom = 1) %>%
+    page_header("Left", "Right") %>%
+    titles("Report 1.0", "Simple Report", 
+           blank_row = "none", header = TRUE, columns = 1) %>%
+    footnotes("My footnote", "Another footnote", "And another", 
+              blank_row = "none", footer = TRUE) %>%
+    page_footer("Left", "Center", "Right")
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  expect_equal(res$pages, 1)
+  
+})
+
+test_that("rtf2-56: Titles and footnotes variations in header and footer work as expected", {
+  
+  dat <- mtcars[1:10, 1:3]
+  
+  fp <- file.path(base_path, "rtf2/test56.rtf")
+  
+  tbl <- create_table(dat) %>%
+    column_defaults(width = 1) 
+  
+  rpt <- create_report(fp, orientation = "landscape",
+                       output_type = "RTF", font = "Arial") %>%
+    add_content(tbl) %>%
+    set_margins(top = 1) %>%
+    page_header("Left", "Right") %>%
+    titles("Report 1.0", "Simple Report", align = "left", width = 6,
+           blank_row = "none", header = TRUE) %>%
+    titles("Report 1.0", "Simple Report", align = "right", width = 6,
+           blank_row = "below", header = TRUE, borders = "bottom") %>%
+    footnotes("My footnote", blank_row = "none", footer = TRUE, borders = "top") %>%
+    footnotes("My footnote2", blank_row = "none", footer = TRUE, align = "right") %>%
+    footnotes("My footnote3", blank_row = "none", footer = TRUE, align = "center") %>%
+    page_footer("Left", "Center", "Right")
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  expect_equal(res$pages, 1)
+  
+})
+
+test_that("rtf2-57: Titles and footnotes in header and footer no page header/footer works as expected", {
+  
+  dat <- mtcars[1:10, 1:3]
+  
+  fp <- file.path(base_path, "rtf2/test57.rtf")
+  
+  tbl <- create_table(dat) %>%
+    column_defaults(width = 1) 
+  
+  rpt <- create_report(fp, orientation = "landscape",
+                       output_type = "RTF", font = "Arial") %>%
+    add_content(tbl) %>%
+    set_margins(top = 1, bottom = 1) %>%
+    titles("Report 1.0 here is a big long title", "Simple Report", align = "left",
+           blank_row = "none", header = TRUE) %>%
+    titles("Report 1.0", "Simple Report", align = "center", width = 6,
+           blank_row = "below", header = TRUE) %>%
+    footnotes("My footnote1", "My footnote2", blank_row = "none", footer = TRUE) 
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  expect_equal(res$pages, 1)
+  
+})
+
+test_that("rtf2-58: Label row is one cell.", {
+  
+  
+  fp <- file.path(base_path, "rtf2/test58.rtf")
+  
+  
+  # Read in prepared data
+  df <- read.table(header = TRUE, text = '
+      var     label        A             B          
+      "ampg"   "N"          "19"          "13"         
+      "ampg"   "Mean"       "18.8 (6.5)"  "22.0 (4.9)" 
+      "ampg"   "Median"     "16.4"        "21.4"       
+      "ampg"   "Q1 - Q3"    "15.1 - 21.2" "19.2 - 22.8"
+      "ampg"   "Range"      "10.4 - 33.9" "14.7 - 32.4"
+      "cyl"    "8 Cylinder" "10 ( 52.6%)" "4 ( 30.8%)" 
+      "cyl"    "6 Cylinder" "4 ( 21.1%)"  "3 ( 23.1%)" 
+      "cyl"    "4 Cylinder" "5 ( 26.3%)"  "6 ( 46.2%)"')
+  
+  ll <- "Here is a super long label to see if it can span the entire table."
+  
+  # Create table
+  tbl <- create_table(df, first_row_blank = TRUE, borders = c("all")) %>% 
+    stub(c("var", "label")) %>% 
+    define(var, blank_after = TRUE, label_row = TRUE, 
+           format = c(ampg = ll, cyl = "Cylinders")) %>% 
+    define(label, indent = .25) %>% 
+    define(A, label = "Group A", align = "center", n = 19) %>% 
+    define(B, label = "Group B", align = "center", n = 13)
+  
+  
+  # Create report and add content
+  rpt <- create_report(fp, orientation = "portrait", output_type = "RTF",
+                       font = "Times") %>% 
+    page_header(left = "Client: Motor Trend", right = "Study: Cars") %>% 
+    titles("Table 1.0", "MTCARS Summary Table") %>% 
+    add_content(tbl) %>% 
+    footnotes("* Motor Trend, 1974") %>%
+    page_footer(left = "Left", 
+                center = "Confidential", 
+                right = "Page [pg] of [tpg]")
+  
+  
+  
+  res <- write_report(rpt)
+  res
+  expect_equal(file.exists(fp), TRUE)
+  
+  
+})
+
+test_that("rtf2-59: Blank after on invisible column.", {
+  
+  fp <- file.path(base_path, "rtf2/test59.rtf")
+  
+  tbl <- create_table(iris, borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  rpt <- create_report(fp, output_type = "RTF", font = "Courier") %>%
+    page_header("Left", "Right") %>%
+    add_content(tbl) %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0", "IRIS Data Frame",
+           blank_row = "below") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+
+test_that("rtf2-60: Blank nested stub works as expected.", {
+  
+  
+  fp <- file.path(base_path, "rtf2/test60.rtf")
+  
+  
+  # Read in prepared data
+  df <- read.table(header = TRUE, text = '
+      var     label        A             B          
+      "ampg"   "Stats"    "19"          "13"         
+      "ampg"   "Stats"    "18.8 (6.5)"  "22.0 (4.9)" 
+      "ampg"   "Stats"    "16.4"        "21.4"       
+      "ampg"   "Stats"    "15.1 - 21.2" "19.2 - 22.8"
+      "ampg"   "Stats"      "10.4 - 33.9" "14.7 - 32.4"
+      "cyl"    "8 Cylinder" "10 ( 52.6%)" "4 ( 30.8%)" 
+      "cyl"    "" "4 ( 21.1%)"  "3 ( 23.1%)" 
+      "cyl"    "" "5 ( 26.3%)"  "6 ( 46.2%)"')
+  
+  ll <- "Here is a super long label to see if it can span the entire table."
+  
+  # Create table
+  tbl <- create_table(df, first_row_blank = TRUE, borders = c("all")) %>% 
+    stub(c("var", "label")) %>% 
+    define(var, blank_after = TRUE, label_row = TRUE, 
+           format = c(ampg = ll, cyl = "Cylinders")) %>% 
+    define(label, indent = .25, dedupe = TRUE) %>% 
+    define(A, label = "Group A", align = "center", n = 19) %>% 
+    define(B, label = "Group B", align = "center", n = 13)
+  
+  
+  # Create report and add content
+  rpt <- create_report(fp, orientation = "portrait", output_type = "RTF",
+                       font = "Times") %>% 
+    page_header(left = "Client: Motor Trend", right = "Study: Cars") %>% 
+    titles("Table 1.0", "MTCARS Summary Table") %>% 
+    add_content(tbl) %>% 
+    footnotes("* Motor Trend, 1974") %>%
+    page_footer(left = "Left", 
+                center = "Confidential", 
+                right = "Page [pg] of [tpg]")
+  
+  
+  
+  res <- write_report(rpt)
+  res
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+
+
+test_that("rtf2-61: Page header width works.", {
+  
+  fp <- file.path(base_path, "rtf2/test61.rtf")
+  
+  tbl <- create_table(iris, borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  rpt <- create_report(fp, output_type = "RTF", font = "Courier") %>%
+    page_header("Left and here is a really long left cell text to put it", 
+                "Right", width = 8) %>%
+    add_content(tbl) %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0", "IRIS Data Frame",
+           blank_row = "below") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("rtf2-62: Carriage return in label row works.", {
+  
+  
+  fp <- file.path(base_path, "rtf2/test62.rtf")
+  
+  
+  # Read in prepared data
+  df <- read.table(header = TRUE, text = '
+      var     label        A             B          
+      "ampg"   "N"          "19"          "13"         
+      "ampg"   "Mean"       "18.8 (6.5)"  "22.0 (4.9)" 
+      "ampg"   "Median"     "16.4"        "21.4"       
+      "ampg"   "Q1 - Q3"    "15.1 - \n21.2" "19.2 - 22.8"
+      "ampg"   "Range"      "10.4 - 33.9" "14.7 - 32.4"
+      "cyl"    "8 Cylinder" "10 ( 52.6%)" "4 ( 30.8%)" 
+      "cyl"    "6 Cylinder" "4 ( 21.1%)"  "3 ( 23.1%)" 
+      "cyl"    "4 Cylinder" "5 ( 26.3%)"  "6 ( 46.2%)"')
+  
+  ll <- "Here is a super long label to \nsee if it can span the entire table."
+  
+  # Create table
+  tbl <- create_table(df, first_row_blank = TRUE, borders = c("all")) %>% 
+    stub(c("var", "label")) %>% 
+    define(var, blank_after = TRUE, label_row = TRUE, 
+           format = c(ampg = ll, cyl = "Cylinders")) %>% 
+    define(label, indent = .25) %>% 
+    define(A, label = "Group A", align = "center", n = 19) %>% 
+    define(B, label = "Group B", align = "center", n = 13)
+  
+  
+  # Create report and add content
+  rpt <- create_report(fp, orientation = "portrait", output_type = "RTF",
+                       font = "Times") %>% 
+    page_header(left = "Client: Motor Trend", right = "Study: Cars") %>% 
+    titles("Table 1.0", "MTCARS Summary Table") %>% 
+    add_content(tbl) %>% 
+    footnotes("* Motor Trend, 1974") %>%
+    page_footer(left = "Left", 
+                center = "Confidential", 
+                right = "Page [pg] of [tpg]")
+  
+  
+  
+  res <- write_report(rpt)
+  res
+  expect_equal(file.exists(fp), TRUE)
+  
+  
+})
+
+
+test_that("rtf2-63: Glue works.", {
+  
+  
+  fp <- file.path(base_path, "rtf2/test63.rtf")
+  
+  
+  # Read in prepared data
+  df <- read.table(header = TRUE, text = '
+      var     label        A             B          
+      "ampg"   "N"          "19"          "13"         
+      "ampg"   "Mean"       "18.8 (6.5)"  "22.0 (4.9)" 
+      "ampg"   "Median"     "16.4"        "21.4"       
+      "ampg"   "Q1 - Q3"    "15.1 - \n21.2" "19.2 - 22.8"
+      "ampg"   "Range"      "10.4 - 33.9" "14.7 - 32.4"
+      "cyl"    "8 Cylinder" "10 ( 52.6%)" "4 ( 30.8%)" 
+      "cyl"    "6 Cylinder" "4 ( 21.1%)"  "3 ( 23.1%)" 
+      "cyl"    "4 Cylinder" "5 ( 26.3%)"  "6 ( 46.2%)"')
+  
+  ll <- "Here is a super long label to \nsee if it can span the entire table."
+  
+  # Create table
+  tbl <- create_table(df, first_row_blank = TRUE, borders = c("all")) %>% 
+    stub(c("var", "label"), label = "Stub{supsc('2')}") %>% 
+    define(var, blank_after = TRUE, label_row = TRUE, 
+           format = c(ampg = ll, cyl = "Cylinders")) %>% 
+    define(label, indent = .25) %>% 
+    define(A, label = "Group A{supsc('1')}", align = "center", n = 19) %>% 
+    define(B, label = "Group B", align = "center", n = 13)
+  
+  
+  # Create report and add content
+  rpt <- create_report(fp, orientation = "portrait", output_type = "RTF",
+                       font = "Times") %>% 
+    page_header(left = c("Client: Motor Trend{supsc('6')}",
+                         "Test{supsc('8')}"), right = "Study: Cars") %>% 
+    titles("Table 1.0", "MTCARS Summary Table{supsc('3')}") %>% 
+    add_content(tbl) %>% 
+    footnotes("* Motor Trend, 1974{supsc('4')}") %>%
+    page_footer(left = "Left{supsc('6')}", 
+                center = "Confidential", 
+                right = "Page [pg] of [tpg]")
+  
+  
+  
+  res <- write_report(rpt)
+  res
+  expect_equal(file.exists(fp), TRUE)
+  
+  
+})
+
+
+test_that("rtf2-64: Title columns work 1 column.", {
+  
+  fp <- file.path(base_path, "rtf2/test64.rtf")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  rpt <- create_report(fp, output_type = "RTF", font = "Courier") %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0", "IRIS Data Frame",
+           blank_row = "below", columns =  1, align = "left") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("rtf2-65: Title columns work 2 columns.", {
+  
+  fp <- file.path(base_path, "rtf2/test65.rtf")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  rpt <- create_report(fp, output_type = "RTF", font = "Courier") %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0", "IRIS Data Frame", "Left", "Right",
+           blank_row = "below", columns =  2) %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("rtf2-66: Title columns work 3 columns.", {
+  
+  fp <- file.path(base_path, "rtf2/test66.rtf")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  rpt <- create_report(fp, output_type = "RTF", font = "Courier") %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0", "IRIS Data Frame", "My right thing", "", "Center",
+           blank_row = "below", columns =  3) %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("rtf2-67: Multiple title blocks work as expected.", {
+  
+  fp <- file.path(base_path, "rtf2/test67.rtf")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  rpt <- create_report(fp, output_type = "RTF", font = "Courier") %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0", "IRIS Data Frame",
+           blank_row = "below", columns =  1, align = "center", width = 7,
+           borders = "all") %>%
+    titles("Table 2.0", "IRIS Data Frame2", "Left", "Right",
+           blank_row = "below", columns =  2, borders = "all") %>%
+    titles("Table 3.0", "IRIS Data Frame3", "My right thing", "", "Center",
+           blank_row = "below", columns =  3, borders = "all") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
 
 
 
 # User Tests --------------------------------------------------------------
 
-test_that("rtf2-user1: demo table works.", {
+test_that("user1: demo table works.", {
   
   if (dev) {
     library(tidyr)
@@ -2031,7 +2478,7 @@ test_that("rtf2-user1: demo table works.", {
   
 })
 
-test_that("rtf2-user2: demo table with stub works.", {
+test_that("user2: demo table with stub works.", {
   
   
   if (dev) {
@@ -2342,7 +2789,7 @@ test_that("user5: Portrait in 12pt Arial works as expected.", {
       titles("Table 1.0", "MTCARS Summary Table") %>% 
       add_content(tbl) %>% 
       footnotes("* Motor Trend, 1974") %>%
-      page_footer(left = Sys.time(), 
+      page_footer(left = "Left", 
                   center = "Confidential", 
                   right = "Page [pg] of [tpg]")
     
@@ -2392,7 +2839,7 @@ test_that("user6: Borders with spanning headers work as expected.", {
                        font = "Arial") %>% 
     set_margins(top = 1, bottom = 1) %>% 
     add_content(tbl) %>%
-    page_footer(left = paste("Date:", Sys.time()), right = "Page [pg] of [tpg]", blank_row="none") %>%
+    page_footer(left = paste("Date:", "Left"), right = "Page [pg] of [tpg]", blank_row="none") %>%
     footnotes("Program: C:/Users/Home/AppData/Local/Temp/tdemo.R", blank_row="above") 
   
   res <- write_report(rpt)
@@ -2464,7 +2911,7 @@ test_that("user7: Check footnotes on page by.", {
     
     add_content(tbl) %>%
     
-    page_footer(left = paste("Date:", Sys.time()), right = "Page [pg] of [tpg]", blank_row="none") %>%
+    page_footer(left = paste("Date:", "Left"), right = "Page [pg] of [tpg]", blank_row="none") %>%
     footnotes("Program: C:/Users/Home/AppData/Local/Temp/tdemo.R", blank_row="above", valign = "bottom") 
   
   

@@ -292,8 +292,15 @@ add_blank_rows <- function(x, location = "below", vars = NULL) {
 
   # Add blank row for each split
   for (i in seq_along(lst)) {
+    
+    # Don't append line for blank rows
+    if ("..blank" %in% names(lst[[i]]) & all(lst[[i]][["..blank"]] == "B")) {
+      
+      ret[[i]] <- lst[[i]]
+    } else {
 
-    ret[[i]] <- add_blank_row(lst[[i]], location = location, vars = vars)
+      ret[[i]] <- add_blank_row(lst[[i]], location = location, vars = vars)
+    }
 
   }
 
@@ -367,6 +374,7 @@ split_cells <- function(x, col_widths) {
   dat <- NULL           # Resulting data frame
   row_values <- list()  # A list to hold cell values for one row 
   max_length <- 0       # The maximum number of splits of a cell in that row
+  wdths <- col_widths[!is.controlv(names(x))]
 
   for (i in seq_len(nrow(x))) {
     for (nm in names(x)) {
@@ -378,7 +386,14 @@ split_cells <- function(x, col_widths) {
           
           cell <- substr(x[[i, nm]], 1, col_widths[[nm]])
           
+        } else if ("..blank" %in% names(x) && x[[i, "..blank"]] == "L") {
+          
+          cell <- stri_wrap(unlist(
+            strsplit(x[[i, nm]], split = "\n", fixed = TRUE)), 
+            width = sum(wdths), normalize = FALSE)
+          
         } else {
+          
           cell <- stri_wrap(unlist(
             strsplit(x[[i, nm]], split = "\n", fixed = TRUE)), 
             width = col_widths[[nm]], normalize = FALSE)
@@ -540,13 +555,6 @@ split_string_rtf <- function(strng, width, units, font = "Arial") {
               lines = length(res$text),
               widths = res$widths)
   
-  # Not sure whether I can do this
-  # ret <- list(rtf = paste0(res$text, collapse = "\\line "),
-  #             lines = length(res$text), 
-  #             widths = res$widths)
-  
-
-  
   return(ret)
 }
 
@@ -618,6 +626,25 @@ split_cells_variable <- function(x, col_widths, font, font_size, units,
         if ("..blank" %in% names(x) && x[[i, "..blank"]] == "B") {
           
           cell <- ""
+          
+        } else if ("..blank" %in% names(x) && x[[i, "..blank"]] == "L") {
+          
+          if (output_type %in% c("HTML", "DOCX")) {
+            res <- split_string_html(x[[i, nm]], sum(col_widths), units)
+            
+            cell <- res$html
+            
+          } else if (output_type == "RTF") {
+            res <- split_string_rtf(x[[i, nm]], sum(col_widths), units, font)
+            
+            cell <- res$rtf
+          } else if (output_type == "PDF") {
+            
+            res <- split_string_text(x[[i, nm]], sum(col_widths), units)
+            
+            cell <- paste0(res$text, collapse = "\n")
+            
+          }
           
         } else {
           
@@ -719,7 +746,12 @@ align_cells <- function(x, len) {
     t <- len - length(x[[nm]])
     
     if (t > 0) {
-      if (any(typeof(x[[nm]]) == "character")) 
+      if (nm == "..blank") {
+        if (is.na(x[[nm]])) 
+          v <- c(rep(NA, t))
+        else
+          v <- c(rep(x[[nm]], t))
+      } else if (any(typeof(x[[nm]]) == "character")) 
         v <- c(rep("", t))
       else
         v <- c(rep(NA, t))
@@ -791,7 +823,7 @@ dedupe_pages <- function(pgs, defs) {
             dat[[def$var_c]] <- as.character(dat[[def$var_c]])
           
           # Fill with blanks as appropriate
-          w <- nchar(dat[[def$var_c]][1])
+          w <- min(nchar(dat[[def$var_c]])) # Take min to exclude label row
           v <- paste0(rep(" ", times = w), collapse = "")
           
           dat[[def$var_c]] <- ifelse(!duplicated(dat[[def$var_c]]), 
@@ -1123,6 +1155,67 @@ get_spanning_info <- function(rs, ts, pi, widths, gutter = 1) {
 }
 
 
+#' @import stringi
+apply_widths <- function(dat, wdths, algns) {
+  
+  w <- wdths[!is.controlv(names(wdths))]
+  ret <- dat
+  
+  for (nm in names(ret)) {
+    if (!is.control(nm)) {
+      
+      cw <- wdths[[nm]]
+      
+      # If column width is miscalculated, fix it.
+      if ("..blank" %in% names(dat)) {
+        mxw <- max(ifelse(ret[["..blank"]] == "L", 0, nchar(ret[[nm]])), na.rm = TRUE)
+        if (mxw > cw)
+          cw <- mxw
+      }
+        
+      if (algns[nm] == "left") {
+        
+        ret[[nm]] <- stri_pad_right(ret[[nm]], cw)
+      } else if (algns[nm] == "right") {
+        
+        ret[[nm]] <- stri_pad_left(ret[[nm]], cw)
+      } else if (algns[nm] == "center") {
+        
+        ret[[nm]] <- stri_pad_both(ret[[nm]], cw) 
+      }
+      
+      # Clear out label rows
+      ret[[nm]] <- clear_labels(ret[[nm]], ret[["..blank"]], sum(w)) 
+
+    }
+    
+    if (any(class(ret[[nm]]) == "factor"))
+      ret[[nm]] <- as.character(ret[[nm]])
+    
+  }
+  
+
+   
+  return(ret)
+}
+
+#' @import stringi
+clear_labels <- Vectorize(function(vect, bvect, tw) {
+  
+  ret <- vect
+  if (bvect == "L") {
+    if (trimws(vect) == "") {
+      ret <- ""
+    
+    } else {
+      
+      ret <- stri_pad_right(vect, tw)
+    }
+  }
+  
+  return(ret)
+}, USE.NAMES = FALSE)
+
 # Sizing utilities --------------------------------------------------------
 
 #' @noRd
@@ -1238,6 +1331,7 @@ get_text_width <- function(txt, font, font_size = 10, units = "inches",
 
 # PDF Functions -----------------------------------------------------------
 
+# Convert units to points for PDF x/y placement
 cpoints <- function(vals, units) {
   
   if (units == "inches")
@@ -1295,3 +1389,43 @@ get_points <- function(left_bound, right_bound, widths, units, align) {
   return(ret)
 }
 
+
+gluev <- function(str) {
+ 
+  ret <- str
+  
+  if (!is.null(ret)) {
+    if (!all(is.na(ret))) {
+      if (typeof(ret) == "character") { 
+        ret <- glueint(str)
+      }
+    }
+  } 
+  
+  return(ret)
+}
+
+#' @import glue
+glueint <- Vectorize(function(str) {
+  
+  ret <- glue(str, .trim = FALSE)
+  
+  return(ret) 
+}, USE.NAMES = FALSE, SIMPLIFY = TRUE)
+
+
+#' @noRd
+has_glue <- function() {
+  
+ ret <- TRUE
+ 
+ opts <- options("reporter.glue")[[1]]
+ if (!is.null(opts)) {
+   if (opts == FALSE) {
+     ret <- FALSE 
+   }
+ }
+ 
+ return(ret)
+  
+}

@@ -885,6 +885,9 @@ set_margins <- function(x, top=NULL, bottom=NULL,
 #' of strings.
 #' @param blank_row Whether to create a blank row below the page header.
 #' Valid values are 'below' and 'none'.  Default is 'none'.
+#' @param width The width of the left column of the page header, in 
+#' report units of measure.  The right column will adjust automatically
+#' to equal the page width.
 #' @return The modified report specification.
 #' @family report
 #' @examples
@@ -929,7 +932,8 @@ set_margins <- function(x, top=NULL, bottom=NULL,
 #' # 
 #' # 2020-10-17 11:53:51                                                Page 1 of 1
 #' @export
-page_header <- function(x, left="", right="", blank_row = "none"){
+page_header <- function(x, left="", right="", blank_row = "none", 
+                        width = NULL){
 
   if (!"report_spec" %in% class(x))
     stop("Page header can only be assigned to an object of class 'report_spec'")
@@ -949,9 +953,18 @@ page_header <- function(x, left="", right="", blank_row = "none"){
   if (!is.null(x$title_hdr))
     stop("Cannot add both a page header and a title header.")
   
-  x$page_header_left <- left
-  x$page_header_right <- right
+  if (has_glue()) {
+    x$page_header_left <- gluev(left)
+    x$page_header_right <- gluev(right)
+
+  } else {
+    
+    x$page_header_left <- left
+    x$page_header_right <- right
+
+  }
   x$page_header_blank_row <- blank_row
+  x$page_header_width <- width
 
   return(x)
 }
@@ -1063,7 +1076,8 @@ page_header <- function(x, left="", right="", blank_row = "none"){
 #' #     * In billions of dollars
 #' @export
 title_header <- function(x, ..., right = "", 
-                         blank_row = "below", borders = "none", width = NULL) {
+                         blank_row = "below", borders = "none", 
+                         width = NULL) {
   
 
   diff <- setdiff(class(x), c("list"))
@@ -1116,11 +1130,20 @@ title_header <- function(x, ..., right = "",
     
   }
   
+  ttls <- c(...)
+  
   # Assign attributes
-  ttl_hdr$titles <-  c(...)
+  if (has_glue()) {
+    ttl_hdr$titles <- gluev(ttls)
+    ttl_hdr$right <- gluev(right)
+  } else {
+    ttl_hdr$titles <-  ttls
+    ttl_hdr$right <- right
+  }
+  
   ttl_hdr$blank_row <- blank_row
   ttl_hdr$borders <- borders
-  ttl_hdr$right <- right
+
   ttl_hdr$width <- width
   
   x$title_hdr[[length(x$title_hdr) + 1]] <- ttl_hdr
@@ -1204,6 +1227,17 @@ title_header <- function(x, ..., right = "",
 #' of the report will be used by default.  Valid values are 8, 9, 10, 11, 12,
 #' 13, and 14.  This parameter only applies to variable-width RTF, HTML, PDF,
 #' and DOCX output types.
+#' @param header Whether to put the titles in the page header. Valid values
+#' are TRUE and FALSE.  Default is FALSE. This option only works on the RTF 
+#' and DOCX output types, and only applies to titles assigned 
+#' to the report object.  Titles in the page header will appear on every page, 
+#' and be the same throughout the report.
+#' @param columns The number of columns for the title block. Valid values
+#' are 1, 2, and 3.  Default is 1.  If this parameter is set to 2, the title
+#' block will be split into two columns, each aligned to the outside.  If 
+#' this parameter is set to 3, the title block will be split into 3 columns,
+#' with the outer columns aligned to the outside and the middle column
+#' aligned center.  Titles are assigned to cells from top left to bottom right.
 #' @return The modified report.
 #' @family report
 #' @examples
@@ -1253,7 +1287,7 @@ title_header <- function(x, ..., right = "",
 #' @export
 titles <- function(x, ..., align = "center", blank_row = "below", 
                    borders = "none", width = NULL, bold = FALSE, 
-                   font_size = NULL){
+                   font_size = NULL, header = FALSE, columns = 1){
 
   # Create title structure
   ttl <- structure(list(), class = c("title_spec", "list"))
@@ -1264,7 +1298,7 @@ titles <- function(x, ..., align = "center", blank_row = "below",
   if (!is.null(x$title_hdr))
     stop("Cannot add both titles and a title header.")
   
-  if (!blank_row %in% c("above", "below", "both", "none"))
+  if (!all(blank_row %in% c("above", "below", "both", "none")))
     stop(paste("Blank row parameter invalid.  Valid values are", 
                "'above', 'below', 'both', or 'none'."))
   
@@ -1299,19 +1333,33 @@ titles <- function(x, ..., align = "center", blank_row = "below",
     }
   }
   
-      
+  if (header == TRUE & !"report_spec" %in% class(x)) {
+    
+    stop("Header titles can only be assigned to a report.")
+    
+  }
+  
+  ttls <- c(...)
   
   # Assign attributes
-  ttl$titles <-  c(...)
+  if (has_glue()) {
+    ttl$titles <- gluev(ttls)
+  } else {
+    ttl$titles <- ttls
+  }
   ttl$blank_row <- blank_row
   ttl$borders <- borders
   ttl$align <- align
   ttl$width <- width
   ttl$bold <- bold
   ttl$font_size <- font_size
-  
+  ttl$header <- header
+  ttl$columns <- columns
 
-  x$titles[[length(x$titles) + 1]] <- ttl
+  if (header == TRUE)
+    x$header_titles[[length(x$header_titles) + 1]] <- ttl
+  else 
+    x$titles[[length(x$titles) + 1]] <- ttl
   
   return(x)
 
@@ -1380,6 +1428,11 @@ titles <- function(x, ..., align = "center", blank_row = "below",
 #' may also specify a specific width in the current unit of measure.  The
 #' unit of measure is determined by the 'units' parameter on 
 #' \code{\link{create_report}}.
+#' @param footer Whether to put the footnotes in the page footer. Valid
+#' values are TRUE and FALSE.  Default is FALSE.  This parameter only works
+#' with RTF and DOCX output types.  It also only applies to footnotes
+#' assigned to the report object.  Footnotes in the page footer will 
+#' appear on every page, and be the same throughout the report.
 #' @return The modified report.
 #' @family report
 #' @examples
@@ -1429,7 +1482,8 @@ titles <- function(x, ..., align = "center", blank_row = "below",
 #' #     * In billions of dollars
 #' @export
 footnotes <- function(x, ..., align = "left", blank_row = "above", 
-                      borders = "none", valign = NULL, width = NULL){
+                      borders = "none", valign = NULL, width = NULL, 
+                      footer = FALSE){
 
   # Create footnote structure
   ftn <- structure(list(), class = c("footnote_spec", "list"))
@@ -1445,11 +1499,11 @@ footnotes <- function(x, ..., align = "left", blank_row = "above",
                "'center', and 'centre'"))
   
   if (!is.null(valign)) {
-    if (!valign %in% c("top", "bottom"))
+    if (!all(valign %in% c("top", "bottom")))
       stop(paste("Valign parameter invalid. Valid values are 'top' and 'bottom'"))
   }
   
-  if (!blank_row %in% c("above", "below", "both", "none"))
+  if (!all(blank_row %in% c("above", "below", "both", "none")))
     stop(paste("Blank row parameter invalid.  Valid values are", 
                "'above', 'below', 'both', or 'none'."))
   
@@ -1477,12 +1531,24 @@ footnotes <- function(x, ..., align = "left", blank_row = "above",
                    "'content' or a number."))
     }
   }
+  
+  if (footer == TRUE & !"report_spec" %in% class(x)) {
+    
+    stop("Footer footnotes can only be assigned to a report.")
+    
+  }
 
-  ftn$footnotes <- ft
+  if (has_glue()) {
+    ftn$footnotes <- gluev(ft)
+  } else {
+    ftn$footnotes <- ft
+  }
+  
   ftn$blank_row <- blank_row
   ftn$align <- align
   ftn$borders <- borders
   ftn$width <- width  
+  ftn$footer <- footer
 
   if (is.null(valign)) {
     if ("report_spec" %in% class(x))
@@ -1494,7 +1560,10 @@ footnotes <- function(x, ..., align = "left", blank_row = "above",
    ftn$valign <- valign 
   }
   
-  x$footnotes[[length(x$footnotes) + 1]] <- ftn
+  if (footer == TRUE)
+    x$footer_footnotes[[length(x$footer_footnotes) + 1]] <- ftn
+  else
+    x$footnotes[[length(x$footnotes) + 1]] <- ftn
 
   return(x)
 
@@ -1603,9 +1672,16 @@ page_footer <- function(x, left="",  center="", right="", blank_row = "above"){
   if (!blank_row %in% c("none", "above"))
     stop("Invalid value for blank_row.  Valid values are 'above' or 'none'.")
   
-  x$page_footer_left <- left
-  x$page_footer_right <- right
-  x$page_footer_center <- center
+  if (has_glue()) {
+    x$page_footer_left <- gluev(left)
+    x$page_footer_right <- gluev(right)
+    x$page_footer_center <- gluev(center)
+    
+  } else {
+    x$page_footer_left <- left
+    x$page_footer_right <- right
+    x$page_footer_center <- center
+  }
   x$page_footer_blank_row <- blank_row
 
   return(x)
@@ -1944,6 +2020,9 @@ add_content <- function(x, object, page_break=TRUE, align = "center",
 #' NULL, meaning the entire report will be written.  You may also pass 
 #' a number of pages to write.  For example, passing the number 1 will print
 #' the first page, while passing a 5 will print the first five pages.
+#' @param log Whether the function should log itself automatically, if
+#' the \strong{logr} package is available.  This parameter is used internally.
+#' Default is TRUE.
 #' @return The report spec, with settings modified during rendering.  These 
 #' modified settings can sometimes be useful for documentation, and for 
 #' debugging issues with the procedure.
@@ -2010,7 +2089,8 @@ add_content <- function(x, object, page_break=TRUE, align = "center",
 #' # * NOTE: Data on beaver habits
 #' @export
 write_report <- function(x, file_path = NULL, 
-                         output_type = NULL, preview = NULL) {
+                         output_type = NULL, preview = NULL, 
+                         log = TRUE) {
   
   
   if (!"report_spec" %in% class(x)) {
@@ -2078,6 +2158,21 @@ write_report <- function(x, file_path = NULL,
       dir.create(dirname(x$modified_path))
     
   }
+  
+  # If there are header titles or footer footnotes, 
+  # reassign to regular title and footnotes lists if not RTF.
+  # This is the lowest risk way to deal with it.
+  if (!x$output_type %in% c("RTF", "DOCX") | x$font == "fixed") {
+    if (length(x$header_titles) > 0) {
+      x$titles <- append(x$header_titles, x$titles)
+      x$header_titles <- NULL
+    }
+    
+    if (length(x$footer_footnotes) > 0) {
+      x$footnotes <- append(x$footer_footnotes, x$footnotes)
+      x$footer_footnotes <- NULL
+    }
+  }
 
   ret <- ""
 
@@ -2111,8 +2206,8 @@ write_report <- function(x, file_path = NULL,
    stop(paste("Output type currently not supported:", x$output_type))
   }
 
-  
-  log_logr(ret)
+  if (log)
+    log_logr(ret)
   
   return(ret)
 }

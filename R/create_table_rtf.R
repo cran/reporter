@@ -64,11 +64,24 @@ create_table_pages_rtf <- function(rs, cntnt, lpg_rows) {
       message("Page by variable not sorted.")
   }
   
+  # Deal with invisible columns
+  if (!is.null(ts$col_defs)) {
+    for (def in ts$col_defs) {
+      if (def$visible == FALSE) {
+        nnm <- paste0("..x.", def$var_c)
+        dat[[nnm]] <- dat[[def$var_c]]
+      }
+    }
+  }
+  
+  # Get control column names 
+  control_cols <- names(dat)[is.controlv(names(dat))]
+  
   # Get vector of all included column names
   # Not all columns in dataset are necessarily included
   # depends on show_cols parameter on create_table and
   # visible parameter on column definitions
-  keys <- get_table_cols(ts)
+  keys <- get_table_cols(ts, control_cols)
   # print("keys")
   # print(keys)
   
@@ -146,7 +159,7 @@ create_table_pages_rtf <- function(rs, cntnt, lpg_rows) {
   
   # Break columns into pages
   wraps <- get_page_wraps(rs$line_size, ts, 
-                          widths_uom, 0)  # No gutter width for RTF
+                          widths_uom, 0, control_cols)  # No gutter width for RTF
   # print("wraps")
   # print(wraps)
   
@@ -583,7 +596,12 @@ get_table_header_rtf <- function(rs, ts, widths, lbls, halgns, talgn) {
       
       # Split label strings if they exceed column width
       tmp <- split_string_rtf(lbls[k], widths[k], rs$units, rs$font)
-      ret[1] <- paste0(ret[1], ha[k], " ", tmp$rtf, "\\cell")
+      
+      tb <- tmp$rtf
+      if (ts$header_bold)
+        tb <- paste0("\\b ", tmp$rtf, "\\b0")
+      
+      ret[1] <- paste0(ret[1], ha[k], " ", tb, "\\cell")
 
       # Add in extra lines for labels that wrap
       xtr <- tmp$lines
@@ -800,7 +818,7 @@ get_spanning_header_rtf <- function(rs, ts, pi) {
   return(res)
 }
 
-#' @description This function counts lines per row independantly because
+#' @description This function counts lines per row independently because
 #' the ..row field does not account for page wrapping.  Need number
 #' of lines on this particular page.
 #' @noRd
@@ -818,6 +836,7 @@ get_table_body_rtf <- function(rs, tbl, widths, algns, talgn, tbrdrs, frb) {
   nms <- nms[!is.na(nms)]
   nms <- nms[!is.controlv(nms)]
   wdths <- widths[nms]
+  
   if (length(nms) == 1) {
     t <- as.data.frame(tbl[[nms]])
     names(t) <- nms
@@ -866,6 +885,9 @@ get_table_body_rtf <- function(rs, tbl, widths, algns, talgn, tbrdrs, frb) {
   
   ret <- c()
   
+  pdf(NULL)
+  par(family = get_font_family(rs$font), ps = rs$font_size)
+  
   # Table Body
   for(i in seq_len(nrow(t))) {
     
@@ -876,39 +898,81 @@ get_table_body_rtf <- function(rs, tbl, widths, algns, talgn, tbrdrs, frb) {
       ret[i] <- paste0("\\trowd\\trgaph0\\trrh", rh, ta)
     
     
-    # Loop for cell definitions
-    for(j in seq_len(ncol(t))) {
-      if (!is.control(nms[j])) {
-        radj <- 0
-        if (frb == TRUE) 
-          radj <- 1
-        
-        b <- get_cell_borders(i + radj, j, nrow(t) + radj, ncol(t), brdrs, flgs[i])
-        ret[i] <- paste0(ret[i], b, "\\cellx", sz[j])
+
+    if (flgs[i] %in% c("B", "L")) {
+      
+      # Deal with blank and label rows
+      radj <- 0
+      if (frb == TRUE) 
+        radj <- 1
+      
+      b <- get_cell_borders(i + radj, 1, nrow(t) + radj, ncol(t), brdrs, flgs[i])
+      ret[i] <- paste0(ret[i], b, "\\cellx", max(sz))
+      
+      
+    } else {
+      
+      # Loop for cell definitions
+      for(j in seq_len(ncol(t))) {
+        if (!is.control(nms[j])) {
+          radj <- 0
+          if (frb == TRUE) 
+            radj <- 1
+          
+          b <- get_cell_borders(i + radj, j, nrow(t) + radj, ncol(t), brdrs, flgs[i])
+          ret[i] <- paste0(ret[i], b, "\\cellx", sz[j])
+        }
       }
     }
     
     mxrw <- 1
     
-    # Loop for cell values
-    for(j in seq_len(ncol(t))) {
+    
+    if (flgs[i] %in% c("B", "L")) {
       
-
-      if (!is.control(nms[j])) {
+      # Deal with label rows
+      vl <- t[i, 1]
+      
+      # # Strip out line feeds for label rows
+      # vl <- gsub("\\line", "", vl, fixed = TRUE)
+      # 
+      # # Recalculate based on total width of table
+      # tmp <- split_string_rtf(vl, sum(wdths), rs$units, rs$font)
+      
+      ret[i] <- paste0(ret[i], ca[1], " ", vl, "\\cell")
+      
+      # Construct rtf
+      #ret[i] <- paste0(ret[i], ca[1], " ", tmp$rtf, "\\cell")
+      
+      # if (length(tmp$lines) > mxrw)
+      #   mxrw <- length(cl)
+      
+      cl <- strsplit(vl, "\\line", fixed = TRUE)[[1]]
+      if (length(cl) > mxrw)
+        mxrw <- length(cl)
+      
+    } else {
+      
+      # Loop for cell values
+      for(j in seq_len(ncol(t))) {
         
-        # Construct rtf
-        ret[i] <- paste0(ret[i], ca[j], " ", t[i, j], "\\cell")
+  
+        if (!is.control(nms[j])) {
+          
+          # Construct rtf
+          ret[i] <- paste0(ret[i], ca[j], " ", t[i, j], "\\cell")
+          
+          vl <- t[i, j]
+          if (all(class(vl) != "character"))
+            vl <- as.character(vl)
+          
+          # Count lines in cell 
+          cl <- strsplit(vl, "\\line", fixed = TRUE)[[1]]
+          if (length(cl) > mxrw)
+              mxrw <- length(cl)
+        }
         
-        vl <- t[i, j]
-        if (all(class(vl) != "character"))
-          vl <- as.character(vl)
-        
-        # Count lines in cell 
-        cl <- strsplit(vl, "\\line", fixed = TRUE)[[1]]
-        if (length(cl) > mxrw)
-            mxrw <- length(cl)
       }
-      
     }
     
     rws[i] <- mxrw
@@ -917,6 +981,8 @@ get_table_body_rtf <- function(rs, tbl, widths, algns, talgn, tbrdrs, frb) {
     
     
   }
+  
+  dev.off()
   
 
   ret[length(ret)] <- paste0(ret[length(ret)], "}\\pard",

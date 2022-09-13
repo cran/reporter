@@ -864,6 +864,364 @@ test_that("docx23: Preview works as expected.", {
   
 })
 
+test_that("docx24: Header_bold works as expected", {
+  
+  dat <- mtcars[1:10, 1:3]
+  
+  fp <- file.path(base_path, "docx/test24.docx")
+  
+  tbl <- create_table(dat, header_bold = TRUE, borders = "all") %>%
+    column_defaults(width = 1) %>%
+    titles("Report 1.0", "Simple Report", borders = "outside", 
+           blank_row = "none", bold = TRUE) %>%
+    footnotes("My footnote", blank_row = "none")
+  
+  rpt <- create_report(fp, orientation = "portrait",
+                       output_type = "DOCX", font = "Arial") %>%
+    add_content(tbl) %>%
+    set_margins(top = 1)
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  expect_equal(res$pages, 1)
+  
+})
+
+
+test_that("docs25: Label row is one cell.", {
+  
+  
+  fp <- file.path(base_path, "docx/test25.docx")
+  
+  
+  # Read in prepared data
+  df <- read.table(header = TRUE, text = '
+      var     label        A             B          
+      "ampg"   "N"          "19"          "13"         
+      "ampg"   "Mean"       "18.8 (6.5)"  "22.0 (4.9)" 
+      "ampg"   "Median"     "16.4"        "21.4"       
+      "ampg"   "Q1 - Q3"    "15.1 - 21.2" "19.2 - 22.8"
+      "ampg"   "Range"      "10.4 - 33.9" "14.7 - 32.4"
+      "cyl"    "8 Cylinder" "10 ( 52.6%)" "4 ( 30.8%)" 
+      "cyl"    "6 Cylinder" "4 ( 21.1%)"  "3 ( 23.1%)" 
+      "cyl"    "4 Cylinder" "5 ( 26.3%)"  "6 ( 46.2%)"')
+  
+  ll <- "Here is a super long label to see if it can span the entire table."
+  
+  # Create table
+  tbl <- create_table(df, first_row_blank = TRUE, borders = "all") %>% 
+    stub(c("var", "label")) %>% 
+    define(var, blank_after = TRUE, label_row = TRUE, 
+           format = c(ampg = ll, cyl = "Cylinders")) %>% 
+    define(label, indent = .25) %>% 
+    define(A, label = "Group A", align = "center", n = 19) %>% 
+    define(B, label = "Group B", align = "center", n = 13)
+  
+  
+  # Create report and add content
+  rpt <- create_report(fp, orientation = "portrait", output_type = "DOCX",
+                       font = "Times") %>% 
+    page_header(left = "Client: Motor Trend", right = "Study: Cars") %>% 
+    titles("Table 1.0", "MTCARS Summary Table") %>% 
+    add_content(tbl) %>% 
+    footnotes("* Motor Trend, 1974") %>%
+    page_footer(left = Sys.time(), 
+                center = "Confidential", 
+                right = "Page [pg] of [tpg]")
+  
+  
+  
+  res <- write_report(rpt)
+  res
+  expect_equal(file.exists(fp), TRUE)
+  
+  
+})
+
+test_that("docx26: Blank after on invisible column.", {
+  
+  fp <- file.path(base_path, "docx/test26.docx")
+  
+  tbl <- create_table(iris, borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  rpt <- create_report(fp, output_type = "DOCX") %>%
+    page_header("Left", "Right") %>%
+    add_content(tbl) %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0", "IRIS Data Frame",
+           blank_row = "below") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+
+test_that("docx27: Page header width works.", {
+  
+  fp <- file.path(base_path, "docx/test27.docx")
+  
+  tbl <- create_table(iris[1:10, ], borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  rpt <- create_report(fp, output_type = "DOCX", font = "Courier") %>%
+    page_header("Left and here is a really long left cell text to put it", 
+                "Right", width = 8) %>%
+    add_content(tbl) %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0", "IRIS Data Frame",
+           blank_row = "below") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+
+test_that("docx28: Carriage return in label row works.", {
+  
+  
+  fp <- file.path(base_path, "docx/test28.docx")
+  
+  
+  # Read in prepared data
+  df <- read.table(header = TRUE, text = '
+      var     label        A             B          
+      "ampg"   "N"          "19"          "13"         
+      "ampg"   "Mean"       "18.8 (6.5)"  "22.0 (4.9)" 
+      "ampg"   "Median"     "16.4"        "21.4"       
+      "ampg"   "Q1 - Q3"    "15.1 - \n21.2" "19.2 - 22.8"
+      "ampg"   "Range"      "10.4 - 33.9" "14.7 - 32.4"
+      "cyl"    "8 Cylinder" "10 ( 52.6%)" "4 ( 30.8%)" 
+      "cyl"    "6 Cylinder" "4 ( 21.1%)"  "3 ( 23.1%)" 
+      "cyl"    "4 Cylinder" "5 ( 26.3%)"  "6 ( 46.2%)"')
+  
+  ll <- "Here is a super long label to \nsee if it can span\nthe entire table."
+  
+  # Create table
+  tbl <- create_table(df, first_row_blank = TRUE, borders = c("all")) %>% 
+    stub(c("var", "label")) %>% 
+    define(var, blank_after = TRUE, label_row = TRUE, 
+           format = c(ampg = ll, cyl = "Cylinders")) %>% 
+    define(label, indent = .25) %>% 
+    define(A, label = "Group A", align = "center", n = 19) %>% 
+    define(B, label = "Group B", align = "center", n = 13)
+  
+  
+  # Create report and add content
+  rpt <- create_report(fp, orientation = "portrait", output_type = "DOCX",
+                       font = "Times") %>% 
+    page_header(left = "Client: Motor Trend", right = "Study: Cars") %>% 
+    titles("Table 1.0", "MTCARS Summary Table") %>% 
+    add_content(tbl) %>% 
+    footnotes("* Motor Trend, 1974") %>%
+    page_footer(left = "Left", 
+                center = "Confidential", 
+                right = "Page [pg] of [tpg]")
+  
+  
+  
+  res <- write_report(rpt)
+  res
+  expect_equal(file.exists(fp), TRUE)
+  
+  
+})
+
+
+
+test_that("docx29: Titles and footnotes in header and footer works as expected", {
+  
+  dat <- mtcars[1:10, 1:3]
+  
+  fp <- file.path(base_path, "docx/test29.docx")
+  
+  tbl <- create_table(dat) %>%
+    column_defaults(width = 1) 
+  
+  rpt <- create_report(fp, orientation = "landscape",
+                       output_type = "DOCX", font = "Arial") %>%
+    add_content(tbl) %>%
+    set_margins(top = 1, bottom = 1) %>%
+    page_header("Left", "Right") %>%
+    titles("Report 1.0", "Simple Report", 
+           blank_row = "none", header = TRUE, align = "left") %>%
+    footnotes("My footnote", "Another footnote", "And another", 
+              blank_row = "none", footer = TRUE) %>%
+    page_footer("Left", "Center", "Right")
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  expect_equal(res$pages, 1)
+  
+})
+
+test_that("docx30: Titles and footnotes variations in header and footer work as expected", {
+  
+  dat <- mtcars[1:10, 1:3]
+  
+  fp <- file.path(base_path, "docx/test30.docx")
+  
+  tbl <- create_table(dat) %>%
+    column_defaults(width = 1) 
+  
+  rpt <- create_report(fp, orientation = "landscape",
+                       output_type = "DOCX", font = "Arial") %>%
+    add_content(tbl) %>%
+    set_margins(top = 1) %>%
+    page_header("Left", "Right") %>%
+    titles("Report 1.0", "Simple Report", align = "left", width = 6,
+           blank_row = "none", header = TRUE) %>%
+    titles("Report 1.0", "Simple Report", align = "right", width = 6,
+           blank_row = "below", header = TRUE, borders = "bottom") %>%
+    footnotes("My footnote", blank_row = "none", footer = TRUE, borders = "top") %>%
+    footnotes("My footnote2", blank_row = "none", footer = TRUE, align = "right") %>%
+    footnotes("My footnote3", blank_row = "none", footer = TRUE, align = "center") %>%
+    page_footer("Left", "Center", "Right")
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  expect_equal(res$pages, 1)
+  
+})
+
+test_that("docx31: Titles and footnotes in header and footer no page header/footer works as expected", {
+  
+  dat <- mtcars[1:10, 1:3]
+  
+  fp <- file.path(base_path, "docx/test31.docx")
+  
+  tbl <- create_table(dat) %>%
+    column_defaults(width = 1) 
+  
+  rpt <- create_report(fp, orientation = "landscape",
+                       output_type = "DOCX", font = "Arial") %>%
+    add_content(tbl) %>%
+    set_margins(top = 1, bottom = 1) %>%
+    titles("Report 1.0 here is a big long title", "Simple Report", align = "left",
+           blank_row = "none", header = TRUE) %>%
+    titles("Report 1.0", "Simple Report", align = "center", width = 6,
+           blank_row = "below", header = TRUE) %>%
+    footnotes("My footnote1", "My footnote2", blank_row = "none", footer = TRUE) 
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  expect_equal(res$pages, 1)
+  
+})
+
+test_that("docx32: Title columns work 1 column.", {
+  
+  fp <- file.path(base_path, "docx/test32.docx")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all")  %>%
+    titles("Table 1.0\nsecond row", "IRIS Data Frame3",
+           blank_row = "both", columns =  1, align = "center",
+           borders = c("outside")) 
+  
+  rpt <- create_report(fp, output_type = "DOCX", font = "Courier") %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("docx33: Title columns work 2 columns.", {
+  
+  fp <- file.path(base_path, "docx/test33.docx")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all") %>%
+    titles("Table 1.0\nsecond row", "IRIS Data Frame", "Left", "Right",
+           blank_row = c("above", "below"), columns =  2, borders = "outside")
+  
+  rpt <- create_report(fp, output_type = "DOCX", font = "Courier") %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right")  %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("docx34: Title columns work 3 columns.", {
+  
+  fp <- file.path(base_path, "docx/test34.docx")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  rght <- paste("Here is a big long text string to see how the automatic", 
+                "wrapping is happening in a reduced size cell on the right.")
+  
+  rpt <- create_report(fp, output_type = "DOCX", font = "Courier", 
+                       font_size = 10) %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0\nsecond row", "IRIS Data Frame", 
+           "      My right thing", "", "Center", rght,
+           blank_row = "below", columns =  3, borders = "none") %>%
+    footnotes("Here is a footnote", "And another", "A",
+              "Here is a longer footnote to see if I can figure out the alignment pattern.",
+              align = "right")
+  
+  
+  res <- write_report(rpt)
+  res
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("docx35: Multiple title blocks work as expected.", {
+  
+  fp <- file.path(base_path, "docx/test35.docx")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  rpt <- create_report(fp, output_type = "DOCX", font = "Courier") %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0", "IRIS Data Frame",
+           blank_row = "below", columns =  1, align = "center", width = 7,
+           borders = "all") %>%
+    titles("Table 2.0", "IRIS Data Frame2", "Left", "Right",
+           blank_row = "below", columns =  2, borders = "all") %>%
+    titles("Table 3.0", "IRIS Data Frame3", "My right thing", "", "Center",
+           blank_row = "below", columns =  3, borders = "all") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+
 
 # User Tests --------------------------------------------------------------
 

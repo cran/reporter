@@ -571,8 +571,8 @@ test_that("pdf2-12: Table Borders work as expected.", {
   rpt <- create_report(fp, output_type = "PDF", font = fnt,
                        font_size = 12, orientation = "landscape") %>%
     set_margins(top = 1, bottom = 1) %>%
-    page_header("Left", c("Right1", "Right2", "Right3"), blank_row = "below") %>%
-    add_content(tbl) %>%
+    page_header("Left", c("Right1", "Right2", "Right3"), blank_row = "none") %>%
+    add_content(tbl, align = "right") %>%
     page_footer("Left1", "Center1", "Right1")
 
   res <- write_report(rpt)
@@ -921,7 +921,7 @@ test_that("pdf2-22: Page by works as expected.", {
   dat <- iris
 
   tbl <- create_table(dat, borders = "all") %>%
-    titles("Table 1.0", "My Nice Report with a Page By", borders = "all", 
+    titles("Table 1.0", "My Nice Report with a Page By", borders = "outside", 
            blank_row = "none") %>%
     page_by(Species, label = "Species", align = "center", borders = "all", 
             blank_row = "none")
@@ -1537,7 +1537,7 @@ test_that("pdf2-38: Title and Footnote specific widths work as expected.", {
 
   tbl <- create_table(dat, borders = "all") %>%
     titles("Table 1.0", "My Nice Report with Borders",
-           borders = c("top", "bottom", "left", "right"),
+           borders = c("outside"),
            width = 7, align = "left") %>%
     footnotes("My footnote 1", "My footnote 2", valign = "top",
               borders = c("top", "bottom", "left", "right"),
@@ -2013,6 +2013,381 @@ test_that("pdf2-52: PDF Image file works as expected.", {
     expect_equal(TRUE, TRUE)
 })
 
+test_that("pdf2-53: Header_bold works as expected", {
+  
+  dat <- mtcars[1:10, 1:3]
+  
+  fp <- file.path(base_path, "pdf2/test53.pdf")
+  
+  tbl <- create_table(dat, header_bold = TRUE, borders = "all") %>%
+    column_defaults(width = 1) %>%
+    titles("Report 1.0", "Simple Report", borders = "outside", 
+           blank_row = "none", bold = TRUE) %>%
+    footnotes("My footnote", blank_row = "none")
+  
+  rpt <- create_report(fp, orientation = "portrait",
+                       output_type = "PDF", font = "Arial") %>%
+    add_content(tbl) %>%
+    set_margins(top = 1)
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  expect_equal(res$pages, 1)
+  
+})
+
+test_that("pdf2-54: Titles and footnotes in header and footer works as expected", {
+  
+  dat <- mtcars[1:10, 1:3]
+  
+  fp <- file.path(base_path, "pdf2/test54.pdf")
+  
+  tbl <- create_table(dat) %>%
+    column_defaults(width = 1) %>%
+    titles("My table title") %>%
+    footnotes("My table footnote")
+  
+  rpt <- create_report(fp, orientation = "landscape",
+                       output_type = "PDF", font = "Arial") %>%
+    add_content(tbl) %>%
+    set_margins(top = 1, bottom = 1) %>%
+    page_header("Left", "Right") %>%
+    titles("My report title") %>%
+    titles("Report 1.0", "Simple Report", 
+           blank_row = "none", header = TRUE) %>%
+    footnotes("My report footnote") %>%
+    footnotes("My footer footnote", "Another footer footnote", "And another", 
+              blank_row = "none", footer = TRUE) %>%
+    page_footer("Left", "Center", "Right")
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  expect_equal(res$pages, 1)
+  
+})
+
+test_that("pdf2-55: Label row is one cell.", {
+  
+  
+  fp <- file.path(base_path, "pdf2/test55.pdf")
+  
+  
+  # Read in prepared data
+  df <- read.table(header = TRUE, text = '
+      var     label        A             B          
+      "ampg"   "N"          "19"          "13"         
+      "ampg"   "Mean"       "18.8 (6.5)"  "22.0 (4.9)" 
+      "ampg"   "Median"     "16.4"        "21.4"       
+      "ampg"   "Q1 - Q3"    "15.1 - 21.2" "19.2 - 22.8"
+      "ampg"   "Range"      "10.4 - 33.9" "14.7 - 32.4"
+      "cyl"    "8 Cylinder" "10 ( 52.6%)" "4 ( 30.8%)" 
+      "cyl"    "6 Cylinder" "4 ( 21.1%)"  "3 ( 23.1%)" 
+      "cyl"    "4 Cylinder" "5 ( 26.3%)"  "6 ( 46.2%)"')
+  
+  ll <- "Here is a super long label to see if it can span the entire table."
+  
+  # Create table
+  tbl <- create_table(df, first_row_blank = TRUE, borders = c("all")) %>% 
+    stub(c("var", "label")) %>% 
+    define(var, blank_after = TRUE, label_row = TRUE, 
+           format = c(ampg = ll, cyl = "Cylinders")) %>% 
+    define(label, indent = .25) %>% 
+    define(A, label = "Group A", align = "center", n = 19) %>% 
+    define(B, label = "Group B", align = "center", n = 13)
+  
+  
+  # Create report and add content
+  rpt <- create_report(fp, orientation = "landscape", output_type = "PDF",
+                       font = "Times") %>% 
+    page_header(left = "Client: Motor Trend", right = "Study: Cars") %>% 
+    titles("Table 1.0", "MTCARS Summary Table") %>% 
+    add_content(tbl) %>% 
+    footnotes("* Motor Trend, 1974") %>%
+    page_footer(left = Sys.time(), 
+                center = "Confidential", 
+                right = "Page [pg] of [tpg]")
+  
+  
+  
+  res <- write_report(rpt)
+  res
+  expect_equal(file.exists(fp), TRUE)
+  
+  
+})
+
+test_that("pdf2-56: Blank after on invisible column.", {
+  
+  fp <- file.path(base_path, "pdf2/test56.pdf")
+  
+  tbl <- create_table(iris, borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  rpt <- create_report(fp, output_type = "PDF", font = "Courier") %>%
+    page_header("Left", "Right") %>%
+    add_content(tbl) %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0", "IRIS Data Frame",
+           blank_row = "below") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("pdf2-57: Page header width works.", {
+  
+  fp <- file.path(base_path, "pdf2/test57.pdf")
+  
+  tbl <- create_table(iris[1:10, ], borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE)
+  
+  rpt <- create_report(fp, output_type = "PDF", font = "Courier") %>%
+    page_header(paste0("Left and here is a really long left ",
+                       "cell text to put it and more and more"), 
+                "Right", width = 8) %>%
+    add_content(tbl) %>%
+    page_footer("left", "", "right") %>%
+    titles("Table 1.0", "IRIS Data Frame",
+           blank_row = "below") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+
+test_that("pdf2-58: Glue feature works.", {
+  
+  library(common)
+  
+  fp <- file.path(base_path, "pdf2/test58.pdf")
+  
+  tbl <- create_table(mtcars[1:10, ], borders = "outside") %>%
+    spanning_header(1, 4, label = "My span{subsc('4')}") %>%
+    define(mpg, label = "Mpg{subsc('3')}")
+  
+  myvar <- "23"
+  
+  rpt <- create_report(fp, output_type = "PDF", font = "Courier") %>%
+    page_header(c("Left {supsc('2')}really long left ",
+                  "cell text to put it{supsc('3')} and more and more"), 
+                "Right{supsc('x')}") %>%
+    add_content(tbl) %>%
+    page_footer(c("left1{supsc('5')}", "left2{supsc('6')}"), "", 
+                "right{supsc('7')}") %>%
+    titles("Table 1.0{supsc('1')}", "IRIS Data Frame{{myvar}}",
+           blank_row = "below") %>%
+    footnotes("Here is a footnote{subsc('a')}", "And another{subsc('9')}")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+  
+  
+})
+
+
+
+test_that("pdf2-59: Carriage return in label row works.", {
+  
+  
+  fp <- file.path(base_path, "pdf2/test59.pdf")
+  
+  
+  # Read in prepared data
+  df <- read.table(header = TRUE, text = '
+      var     label        A             B          
+      "ampg"   "N"          "19"          "13"         
+      "ampg"   "Mean"       "18.8 (6.5)"  "22.0 (4.9)" 
+      "ampg"   "Median"     "16.4"        "21.4"       
+      "ampg"   "Q1 - Q3"    "15.1 - \n21.2" "19.2 - 22.8"
+      "ampg"   "Range"      "10.4 - 33.9" "14.7 - 32.4"
+      "cyl"    "8 Cylinder" "10 ( 52.6%)" "4 ( 30.8%)" 
+      "cyl"    "6 Cylinder" "4 ( 21.1%)"  "3 ( 23.1%)" 
+      "cyl"    "4 Cylinder" "5 ( 26.3%)"  "6 ( 46.2%)"')
+  
+  ll <- "Here is a super long label to \nsee if it can span the entire table."
+  
+  # Create table
+  tbl <- create_table(df, first_row_blank = TRUE, borders = c("all")) %>% 
+    stub(c("var", "label")) %>% 
+    define(var, blank_after = TRUE, label_row = TRUE, 
+           format = c(ampg = ll, cyl = "Cylinders")) %>% 
+    define(label, indent = .25) %>% 
+    define(A, label = "Group A", align = "center", n = 19) %>% 
+    define(B, label = "Group B", align = "center", n = 13)
+  
+  
+  # Create report and add content
+  rpt <- create_report(fp, orientation = "portrait", output_type = "PDF",
+                       font = "Times") %>% 
+    page_header(left = "Client: Motor Trend", right = "Study: Cars") %>% 
+    titles("Table 1.0", "MTCARS Summary Table") %>% 
+    add_content(tbl) %>% 
+    footnotes("* Motor Trend, 1974") %>%
+    page_footer(left = "Left", 
+                center = "Confidential", 
+                right = "Page [pg] of [tpg]")
+  
+  
+  
+  res <- write_report(rpt)
+  res
+  expect_equal(file.exists(fp), TRUE)
+  
+  
+})
+
+test_that("pdf2-60: Spanning headers borders work as expected with no title border.", {
+  
+  
+  fp <- file.path(base_path, "pdf2/test60.pdf")
+  
+  dat <- mtcars[1:15, ]
+  
+  tbl <- create_table(dat, borders = c("top", "bottom")) %>%
+    spanning_header(cyl, disp, "Span 1", label_align = "left") %>%
+    spanning_header(hp, wt, "Span 2", underline = FALSE) %>%
+    spanning_header(qsec, vs, "Span 3", n = 10) %>%
+    spanning_header(drat, gear, "Super Duper\nWrapped Span", n = 11, level = 2) %>%
+    titles("Table 1.0", "My Nice Table", borders = c("none"), blank_row = "none", 
+           columns = 2) %>%
+    footnotes("My footnote 1", "My footnote 2", borders = "none", blank_row = "none")
+  
+  rpt <- create_report(fp, output_type = "PDF", font = fnt,
+                       font_size = fsz, orientation = "landscape") %>%
+    page_header("Left", "Right") %>%
+    set_margins(top = 1, bottom = 1) %>%
+    add_content(tbl)
+  
+  
+  res <- write_report(rpt)
+  res
+  
+  expect_equal(file.exists(fp), TRUE)
+  expect_equal(res$pages, 1)
+  
+})
+
+
+
+test_that("pdf2-61: Title columns work 1 column.", {
+  
+  fp <- file.path(base_path, "pdf2/test61.pdf")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all")  %>%
+    titles("Table 1.0\nsecond row", "IRIS Data Frame2",
+           blank_row = "above", columns =  1, align = "center",
+           borders = "outside") 
+  
+  rpt <- create_report(fp, output_type = "PDF", font = "Courier") %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("pdf2-62: Title columns work 2 columns.", {
+  
+  fp <- file.path(base_path, "pdf2/test62.pdf")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all") %>%
+    titles("Table 1.0\nsecond row", "IRIS Data Frame", "Left", "Right", "mo\nre",
+           blank_row = "below", columns =  2, borders = "all")
+  
+  rpt <- create_report(fp, output_type = "PDF", font = "Courier") %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right")  %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("pdf2-63: Title columns work 3 columns.", {
+  
+  fp <- file.path(base_path, "pdf2/test63.pdf")
+  
+  rght <- paste("Here is a big long text string to see how the automatic", 
+                "wrapping is happing in a reduced size cell on the right.")
+  
+  
+  
+  tbl <- create_table(iris[1:15, ], borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE) %>%
+    titles("Table 1.0\nsecond row", "IRIS Data Frame", 
+           "      My right thing", "", "Center", rght,
+           blank_row = "below", columns =  3, borders = "all")
+  
+  
+
+  
+  rpt <- create_report(fp, output_type = "PDF", font = "Courier", 
+                       font_size = 10) %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right") %>%
+
+    footnotes("Here is a footnote", "And another", "A",
+      "Here is a longer footnote to see if I can figure out the alignment pattern.",
+              align = "right")
+  
+  
+  res <- write_report(rpt)
+  res
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+test_that("pdf2-64: Multiple title blocks work as expected.", {
+  
+  fp <- file.path(base_path, "pdf2/test64.pdf")
+  
+  tbl <- create_table(iris[1:15, ], borders = "all") %>%
+    define(Species, blank_after = TRUE, visible = FALSE) %>%
+    titles("Table 1.0", "IRIS Data Frame",
+           blank_row = "none", columns =  1, borders = "all") %>%
+    titles("Table 2.0", "IRIS Data Frame2", "Left", "Right",
+           blank_row = "none", columns =  2, borders = "all") %>%
+    titles("Table 3.0", "IRIS Data Frame3", "My right thing", "", "Center",
+           blank_row = "both", columns =  3, borders = "outside")
+  
+  rpt <- create_report(fp, output_type = "PDF", font = "Courier") %>%
+    add_content(tbl) %>%
+    page_header("left", "right") %>%
+    page_footer("left", "", "right") %>%
+    footnotes("Here is a footnote", "And another")
+  
+  
+  res <- write_report(rpt)
+  
+  expect_equal(file.exists(fp), TRUE)
+  
+})
+
+
 
 # # User Tests --------------------------------------------------------------
 
@@ -2346,9 +2721,13 @@ test_that("user3: listings works.", {
       page_footer(left = "Time", right = "Page [pg] of [tpg]") %>%
       footnotes("My footnotes")
 
+    stm <- Sys.time()
     #Write out report
     res <- write_report(rpt, output_type = "PDF")
-
+    
+    etm <- Sys.time()
+    etm - stm
+    
     expect_equal(file.exists(fp), TRUE)
 
 

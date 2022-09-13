@@ -64,11 +64,24 @@ create_table_pages_docx <- function(rs, cntnt, lpg_rows) {
       message("Page by variable not sorted.")
   }
   
+  # Deal with invisible columns
+  if (!is.null(ts$col_defs)) {
+    for (def in ts$col_defs) {
+      if (def$visible == FALSE) {
+        nnm <- paste0("..x.", def$var_c)
+        dat[[nnm]] <- dat[[def$var_c]]
+      }
+    }
+  }
+  
+  # Get control column names 
+  control_cols <- names(dat)[is.controlv(names(dat))]
+  
   # Get vector of all included column names
   # Not all columns in dataset are necessarily included
   # depends on show_cols parameter on create_table and
   # visible parameter on column definitions
-  keys <- get_table_cols(ts)
+  keys <- get_table_cols(ts, control_cols)
   # print("keys")
   # print(keys)
   
@@ -146,7 +159,7 @@ create_table_pages_docx <- function(rs, cntnt, lpg_rows) {
   
   # Break columns into pages
   wraps <- get_page_wraps(rs$line_size, ts, 
-                          widths_uom, 0)  # No gutter width for RTF
+                          widths_uom, 0, control_cols)  # No gutter width for RTF
   # print("wraps")
   # print(wraps)
   
@@ -277,12 +290,6 @@ create_table_docx <- function(rs, ts, pi, content_blank_row, wrap_flag,
   
   blnks <- c()
   
-  # Get row count by summing ..row variable
-  # if ("..row" %in% names(pi$data)) {
-  #   rcnt <- sum(pi$data$..row)
-  # } else {
-  #   rcnt <- nrow(pi$data) 
-  # }
   
   # Determine sum of all lines
   rc <- sum(ttls$lines, pgby$lines, shdrs$lines, 
@@ -296,50 +303,16 @@ create_table_docx <- function(rs, ts, pi, content_blank_row, wrap_flag,
                                   colspan = ccnt, pi$col_width,
                                   content_brdrs = ts$borders)
   
-  # Deal with cell padding.  Don't count this in line count.
-  # cp <- paste0("\\li", rs$cell_padding, "\\ri", rs$cell_padding, rs$spacing_multiplier)
-  
-  # On LibreOffice, have to protect the table from the title width or
-  # the table row will inherit the title row width. Terrible problem.
-  # tpt <- "{\\pard\\fs1\\sl0\\par}"
-  # if (any(ts$borders %in% c("all", "top", "outside"))) {
-  #   if (ttls$border_flag | rs$page_template$titles$border_flag |  
-  #       rs$page_template$title_hdr$border_flag)
-  #     tpt <- ""
-  #   
-  #   if (length(pgby) > 0) {
-  #     if (pgby$border_flag)
-  #       tpt <- ""
-  #   }
-  # }
-  
-  # Same thing as above with titles.  If footnote block is contiguous
-  # with table and footnotes are wider than table, row width of footnotes
-  # will infect row width of table.  On libre only.  So this is to protect
-  # the table width.
-  # bpt <- "{\\pard\\fs1\\sl0\\par}"
-  # if (any(ts$borders %in% c("all", "top", "outside"))) {
-  #   if (!is.null(ftnts)) {
-  #     if (ftnts$border_flag)
-  #       bpt <- ""
-  #   }
-  #   
-  #   if (!is.null(rs$page_template$footnotes)) {
-  #     if (rs$page_template$footnotes$border_flag)
-  #       bpt <- ""
-  #   }
-  # }
 
+  # Get units
   u <- rs$units
   if (u == "inches")
     u <- "in"
 
+  # Table borders
   tb <- get_table_borders_docx(ts$borders)
   
-  # Added buffer to avoid header label wrapping, but it is making the table too wide
-  # tw <- sum(round(sum(pi$col_width, na.rm = TRUE) * conv),
-  #           round(length(pi$col_width[!is.na(pi$col_width)]) * .08 * conv))
-  #tw <- round(sum(sum(pi$col_width, na.rm = TRUE) * conv)) 
+  # Table width
   tw <- round(ls * conv)
  
   
@@ -347,7 +320,7 @@ create_table_docx <- function(rs, ts, pi, content_blank_row, wrap_flag,
   ta <- get_indent_docx(pi$table_align, rs$line_size, tw, 
                         rs$base_indent, ts$borders, conv)
   
-  
+  # Construct table 
   ts <- paste0("<w:tbl>", "<w:tblPr>",
                ta,
                '<w:tblStyle w:val="TableGrid"/>',
@@ -638,7 +611,8 @@ get_table_header_docx <- function(rs, ts, pi, ex_brdr = FALSE) {
       #if (b == "") {
         ret[1] <- paste0(ret[1], cell_abs(tmp$html, ha[k], sz[k], 
                                           borders = b, 
-                                          valign = "bottom"))
+                                          valign = "bottom", 
+                                          bold = ts$header_bold))
       
       # Add in extra lines for labels that wrap
       xtr <- tmp$lines
@@ -923,6 +897,8 @@ get_table_body_docx <- function(rs, tbl, widths, algns, talgn, tbrdrs,
     badj <- 1
   }
   
+  pdf(NULL)
+  par(family = get_font_family(rs$font), ps = rs$font_size)
   
   # Table Body
   for(i in seq_len(nrow(t))) {
@@ -943,7 +919,7 @@ get_table_body_docx <- function(rs, tbl, widths, algns, talgn, tbrdrs,
         if (any(brdrs %in% c("bottom", "left", "right", "outside", "body"))) {
 
           b <- get_cell_borders_docx(i + badj, j, nrow(t) + badj, 
-                                     length(nms), brdrs)
+                                     length(nms), brdrs, tb[i])
           
 
           
@@ -961,6 +937,17 @@ get_table_body_docx <- function(rs, tbl, widths, algns, talgn, tbrdrs,
         vl <- t[i, j]
         if (!is.character(vl))
           vl <- as.character(vl)
+        
+        # if (tb[i] %in% c("B", "L")) {
+        #   
+        #   # Strip out line feeds for label rows
+        #   vl <- gsub("\n", " ", vl, fixed = TRUE)
+        #   
+        #   # Redo splits
+        #   vtmp <- split_string_html(vl, sum(wdths), rs$units)
+        #   vl <- vtmp$html
+        #   
+        # }
         
         if (!(tb[i] %in% c("B", "L") & j > 1)) {
           # Construct html
@@ -988,6 +975,8 @@ get_table_body_docx <- function(rs, tbl, widths, algns, talgn, tbrdrs,
     
     
   }
+  
+  dev.off()
   
   if ("bottom" %in% get_outer_borders(brdrs))
     border_flag <- TRUE

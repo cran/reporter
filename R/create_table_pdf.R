@@ -64,11 +64,24 @@ create_table_pages_pdf <- function(rs, cntnt, lpg_rows) {
       message("Page by variable not sorted.")
   }
   
+  # Deal with invisible columns
+  if (!is.null(ts$col_defs)) {
+    for (def in ts$col_defs) {
+      if (def$visible == FALSE) {
+        nnm <- paste0("..x.", def$var_c)
+        dat[[nnm]] <- dat[[def$var_c]]
+      }
+    }
+  }
+  
+  # Get control column names 
+  control_cols <- names(dat)[is.controlv(names(dat))]
+  
   # Get vector of all included column names
   # Not all columns in dataset are necessarily included
   # depends on show_cols parameter on create_table and
   # visible parameter on column definitions
-  keys <- get_table_cols(ts)
+  keys <- get_table_cols(ts, control_cols)
   # print("keys")
   # print(keys)
   
@@ -149,7 +162,7 @@ create_table_pages_pdf <- function(rs, cntnt, lpg_rows) {
   
   # Break columns into pages
   wraps <- get_page_wraps(rs$line_size, ts, 
-                          widths_uom, 0)  # No gutter width for RTF
+                          widths_uom, 0, control_cols)  # No gutter width for RTF
   # print("wraps")
   # print(wraps)
   
@@ -636,7 +649,7 @@ get_table_header_pdf <- function(rs, ts, widths, lbls, halgns, talgn,
     for (ln in seq_len(tmp$lines)) {
       
       ret[[length(ret) + 1]] <- page_text(tmp$text[ln], rs$font_size, 
-                                          bold = FALSE,
+                                          bold = ts$header_bold,
                                           xpos = get_points(lb, 
                                                             rb,
                                                             tmp$widths[ln],
@@ -738,7 +751,8 @@ get_table_header_pdf <- function(rs, ts, widths, lbls, halgns, talgn,
 #' @description Return a vector of pdf codes for the table spanning headers
 #' @details Basic idea of this function is to figure out which columns 
 #' the header spans, add widths, then call get_table_header.  Everything
-#' from there is the same.  
+#' from there is the same.  Border adjustments are the closest thing to spaghetti
+#' in this package. But it works.
 #' @import stats
 #' @noRd
 get_spanning_header_pdf <- function(rs, ts, pi, ystart = 0, brdr_flag = FALSE) {
@@ -798,11 +812,22 @@ get_spanning_header_pdf <- function(rs, ts, pi, ystart = 0, brdr_flag = FALSE) {
   
   ret <- list()
   
-  lline <- ystart
-  if (brdr_flag) {
-    lline <- ystart + bs
-  } 
+  tbrdrs <- any(brdrs %in% c("top", "outside", "all"))
   
+  # Nightmare
+  lline <- ystart
+  if (brdr_flag & !tbrdrs) {
+    lline <- ystart + bs
+  } else if (brdr_flag & tbrdrs) {
+    if (all(brdrs %in% "outside"))
+      lline <- ystart + 1
+    else 
+      lline <- ystart + bs 
+  } else if (!brdr_flag & tbrdrs) {
+    lline <- ystart + bs + bs
+  }
+  
+  ybegin <- lline
   
   # Open device context
   pdf(NULL)
@@ -943,9 +968,9 @@ get_spanning_header_pdf <- function(rs, ts, pi, ystart = 0, brdr_flag = FALSE) {
   if (length(lvls) > 0) {
 
     
-    ypos <- ystart - rh + bs 
+    ypos <- ybegin - rh #+ bs 
     
-    if (any(brdrs %in% c("all", "outside", "top"))) {
+    if (any(brdrs %in% c("top", "outside"))) {
       
       ret[[length(ret) + 1]] <- page_hline(tlb * conv,
                                            ypos,
@@ -980,9 +1005,13 @@ get_spanning_header_pdf <- function(rs, ts, pi, ystart = 0, brdr_flag = FALSE) {
     }
   }
   
+  pnts <- cnts * rh
+  if (!brdr_flag & tbrdrs)
+    pnts <- pnts + bs
+  
   res <- list(pdf = ret, 
               lines = cnts, 
-              points = (cnts * rh),
+              points = pnts,
               border_flag = border_flag)
   
   return(res)
@@ -1083,7 +1112,23 @@ get_table_body_pdf <- function(rs, tbl, widths, algns, talgn, tbrdrs,
       else 
         vl <- tbl[i, j]
       
-      tmp <- strsplit(vl, "\n", fixed = TRUE)[[1]]
+      if (flgs[i] %in% c("B", "L")) {
+        
+        # Strip out line feeds for label rows
+        #vl <- gsub("\n", " ", vl, fixed = TRUE)
+        
+        #browser()
+        # Recalculate based on total width of table
+        #stmp <- split_string_text(vl, sum(wdths), rs$units)
+        
+        #tmp <- stmp$text
+        
+        tmp <- strsplit(vl, "\n", fixed = TRUE)[[1]]
+        
+      } else {
+      
+        tmp <- strsplit(vl, "\n", fixed = TRUE)[[1]]
+      }
         
       
       if (j == nms[1]) {
@@ -1182,12 +1227,23 @@ get_table_body_pdf <- function(rs, tbl, widths, algns, talgn, tbrdrs,
   
   }
   
+  dev.off()
+  
+  if (frb & "body" %in% tbrdrs) {
+    
+    
+    ypos <- ystart - rs$row_height - rs$row_height + bh 
+    
+    #ylen <- cnt * rh
+    ylen <- rline - rh + rs$row_height + bs + 1
+    
+  } else {
 
-  ypos <- ystart - rs$row_height + bh - 1
-  
-  
-  #ylen <- cnt * rh
-  ylen <- rline - rh + bs + 1
+    ypos <- ystart - rs$row_height + bh - 1
+    
+    #ylen <- cnt * rh
+    ylen <- rline - rh + bs + 1
+  }
   
   if (any(brdrs %in% c("all", "left", "outside"))) {
     
@@ -1220,7 +1276,7 @@ get_table_body_pdf <- function(rs, tbl, widths, algns, talgn, tbrdrs,
   }
 
   
-  dev.off()
+
   
   rws <- rline
   
