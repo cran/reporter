@@ -72,11 +72,12 @@ get_rtf_document <- function(rs) {
   # Prepare header
   ret[length(ret) + 1] <- paste0("{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 ", fnt , ";}}")
   if (rs$orientation == "landscape") {
-    ret[length(ret) + 1] <- "\\landscape\\horzdoc"
+    #ret[length(ret) + 1] <- "\\landscape\\horzdoc"
+    ret[length(ret) + 1] <- "\\landscape"
     ret[length(ret) + 1] <- paste0("\\paperw", round(rs$page_size[2] * conv),
                                    "\\paperh", round(rs$page_size[1] * conv))
   } else {
-    ret[length(ret) + 1] <- "\\vertdoc"
+    #ret[length(ret) + 1] <- "\\vertdoc"
     ret[length(ret) + 1] <- paste0("\\paperw", round(rs$page_size[1] * conv),
                                    "\\paperh", round(rs$page_size[2] * conv))
   }
@@ -320,25 +321,35 @@ write_content_rtf <- function(rs, hdr, body, pt) {
         if (!is.null(rs$footnotes) & !is.null(pt$footnotes$rtf))
           writeLines(pt$footnotes$rtf, con = f, useBytes = TRUE)
         
+        if (is.null(rs$pages))
+          rs$pages <- 1
+        else 
+          rs$pages <- rs$pages + 1 
         
         # Add form feed character for text page break
         if (last_object == FALSE | last_page == FALSE) {
           
-          if (is.null(rs$pages))
-            rs$pages <- 1
-          else 
-            rs$pages <- rs$pages + 1 
+          if (is.null(cont$object$continuous) || cont$object$continuous == FALSE) {
           
-          writeLines(rs$page_break_rtf, con = f, useBytes = TRUE) 
+            writeLines(rs$page_break_rtf, con = f, useBytes = TRUE) 
+            
+          } else {
+           
+            if (last_page & cont$page_break == TRUE) {
+              
+              writeLines(rs$page_break_rtf, con = f, useBytes = TRUE) 
+            }
+            
+          }
           
         }
       }
       
-      if (last_object == TRUE & last_page == TRUE) {
-        
-        rs$pages <- rs$pages + 1 
-        
-      }
+      # if (last_object == TRUE & last_page == TRUE) {
+      #   
+      #   rs$pages <- rs$pages + 1 
+      #   
+      # }
     }
     
   }

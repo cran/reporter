@@ -548,3 +548,39 @@ test_that("style12: Label row is one cell and styles work.", {
   
 })
 
+test_that("style13: Label row is one cell and styles work.", {
+  
+  res <- cell_style(indicator = fork, bold = TRUE)
+  
+  expect_equal(res$indicator, "fork")
+  expect_equal(res$bold, TRUE)
+  
+})
+
+
+test_that("style14: has_cell_style() works as expected.", {
+  
+  stls <- list(fork = cell_style(bold = TRUE),
+               bork = cell_style(bold = TRUE, indicator = "sammy"))
+  
+  
+  expect_equal(has_cell_style("fork", stls), TRUE)
+  expect_equal(has_cell_style("forp", stls), FALSE)
+  
+})
+
+
+test_that("style15: get_cell_style() works as expected.", {
+  
+  stls <- list(fork = cell_style(bold = TRUE),
+               bork = cell_style(bold = TRUE, indicator = "sammy"))
+  
+  sty <- get_cell_style("fork", stls)
+  
+  expect_equal(is.null(sty), FALSE)
+  
+  sty2 <- get_cell_style("forp", stls)
+  
+  expect_equal(is.null(sty2), TRUE)
+  
+})

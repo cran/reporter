@@ -154,13 +154,26 @@ print.plot_spec <- function(x, ..., verbose = FALSE){
     
     if (!is.null(x$plot)) {
       
-      dat <- x$plot[["data"]]
-
-      cat("- data: ")
-      cat(paste0(nrow(dat), " rows, ", ncol(dat), " cols\n"))
-
-      cat(paste0("- layers: ", length(x$plot[["layers"]]), "\n"))
+      if (typeof(x$plot) == "character") {
+        
+        cat(paste0("- path: '", x$plot, "'\n"))
+        
+        
+      } else {
       
+        if ("ggplot" %in% class(x$plot) & !"patchwork" %in% class(x$plot)) {
+          if (!is.null(x$plot[["data"]])) {
+            dat <- x$plot[["data"]]
+      
+            cat("- data: ")
+            cat(paste0(nrow(dat), " rows, ", ncol(dat), " cols\n"))
+      
+            cat(paste0("- layers: ", length(x$plot[["layers"]]), "\n"))
+          
+          }
+        }
+      
+      }
     } 
     
       
@@ -445,7 +458,11 @@ create_plot_pages_rtf <- function(rs, cntnt, lpg_rows, tmp_dir) {
   
   if (any(class(p) %in% c("character"))) {
     
-    tmp_nm <- tempfile(tmpdir = tmp_dir, fileext = ".jpg")
+    fx <- ".jpg"
+    if (grepl(".emf", p, fixed = TRUE))
+      fx <- ".emf"
+    
+    tmp_nm <- tempfile(tmpdir = tmp_dir, fileext = fx)
     
     file.copy(p, tmp_nm, overwrite = TRUE)
     
@@ -616,6 +633,8 @@ get_plot_body_rtf <- function(plt, plot_path, talign, rs,
         rs$page_template$title_hdr$border_flag)
       tpt <- ""
   }
+  if (titles_aligned(plt$titles, plt$title_hdr))
+    tpt <- ""
   
   # Prevent infection of widths on LibreOffice.
   bpt <- "{\\pard\\fs1\\sl0\\par}"
@@ -630,6 +649,8 @@ get_plot_body_rtf <- function(plt, plot_path, talign, rs,
         bpt <- ""
     }
   }
+  if (footnotes_aligned(plt$footnotes)) 
+    bpt <- ""
   
   # Combine titles, blanks, body, and footnotes
   rws <- c(a, ttls$rtf, ttl_hdr$rtf, pgbys$rtf, tpt, img, bpt)

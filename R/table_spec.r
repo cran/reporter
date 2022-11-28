@@ -114,6 +114,12 @@
 #' specification means put borders around only the body of the table.
 #' @param header_bold Whether or not the column headers on the tables should
 #' be bolded.  Valid values are TRUE and FALSE.  The default is FALSE.
+#' @param continuous If a table crosses multiple pages, it is normally
+#' broken into a separate table for each page, and the titles and footnotes
+#' are repeated on each page. When the "continuous" parameter is TRUE, the
+#' table will instead be a single table, and the titles and footnotes will
+#' not be repeated on each page.  This parameter currently only works for RTF
+#' outputs.
 #' @family table
 #' @seealso \code{\link{create_report}} to create a report, 
 #' \code{\link{create_plot}} to create a plot,
@@ -187,7 +193,8 @@ create_table <- function(x, show_cols = "all", use_attributes = "all",
                          width = NULL, 
                          first_row_blank=FALSE,
                          n_format = upcase_parens, headerless = FALSE,
-                         borders = "none", header_bold = FALSE) {
+                         borders = "none", header_bold = FALSE, 
+                         continuous = FALSE) {
   if (is.null(x)) {
     stop("Data parameter 'x' missing or invalid.") 
     
@@ -237,6 +244,7 @@ create_table <- function(x, show_cols = "all", use_attributes = "all",
   ret$page_var <- NULL
   ret$borders <- borders
   ret$header_bold <- header_bold
+  ret$continuous <- continuous
   if (any(use_attributes == "all"))
     ret$use_attributes <- c("label", "width", "justify", "format")
   else if (all(use_attributes == "none"))
@@ -357,6 +365,9 @@ create_table <- function(x, show_cols = "all", use_attributes = "all",
 #' use standard evaluation on the \code{vars} parameter value.  Default is
 #' FALSE.  Set this parameter to TRUE if you want to pass the \code{vars}
 #' value(s) using a variable.
+#' @param style A \code{\link{cell_style}} object that defines the desired
+#' style for this column.  The cell style object can be used to define 
+#' conditional styling.
 #' @return The modified table spec.
 #' @family table
 #' @examples
@@ -439,7 +450,7 @@ define <- function(x, vars, label = NULL, format = NULL,
                    visible=TRUE, n = NULL, blank_after=FALSE,
                    dedupe=FALSE, id_var = FALSE, page_wrap = FALSE,
                    page_break = FALSE, indent = NULL, label_row = FALSE,
-                   standard_eval = FALSE) {
+                   standard_eval = FALSE, style = NULL) {
   
   if (standard_eval) {
     if (!typeof(vars) %in% c("character", "numeric")) {
@@ -507,7 +518,7 @@ define <- function(x, vars, label = NULL, format = NULL,
                    visible=visible, n = n, blank_after=blank_after,
                    dedupe=dedupe, id_var = id_var, page_wrap = page_wrap,
                    page_break = page_break, indent = indent, 
-                   label_row = label_row)
+                   label_row = label_row, style = style)
    
    x$col_defs[[nm]] <- def
    
@@ -529,7 +540,8 @@ define_c <- function(var, label = NULL, format = NULL,
                    align=NULL, label_align=NULL, width=NULL,
                    visible=TRUE, n = NULL, blank_after=FALSE,
                    dedupe=FALSE, id_var = FALSE, page_wrap = FALSE,
-                   page_break = FALSE, indent = NULL, label_row = FALSE) {
+                   page_break = FALSE, indent = NULL, label_row = FALSE,
+                   style = NULL) {
   
   
   if (!typeof(var) %in% c("character", "numeric"))
@@ -537,25 +549,26 @@ define_c <- function(var, label = NULL, format = NULL,
  
   def <- structure(list(), class = c("col_def", "list"))
   
-  def$var = var
-  def$var_c = var
-  def$label = label
-  def$format = format
-  def$align = align
-  def$label_align = if (is.null(label_align) & !is.null(align))
+  def$var <- var
+  def$var_c <- var
+  def$label <- label
+  def$format <- format
+  def$align <- align
+  def$label_align <- if (is.null(label_align) & !is.null(align))
     align else label_align
-  def$width = width
-  def$visible = visible
-  def$n = n
-  def$blank_after = blank_after
-  def$dedupe = dedupe
-  def$id_var = id_var
-  def$page_wrap = page_wrap
-  def$indent = indent
-  def$label_row = label_row
-  def$page_break = page_break
+  def$width <- width
+  def$visible <- visible
+  def$n <- n
+  def$blank_after <- blank_after
+  def$dedupe <- dedupe
+  def$id_var <- id_var
+  def$page_wrap <- page_wrap
+  def$indent <- indent
+  def$label_row <- label_row
+  def$page_break <- page_break
   if (label_row == TRUE)
     def$dedupe <- TRUE
+  def$style <- style
   
   
   return(def)
@@ -627,6 +640,8 @@ define_c <- function(var, label = NULL, format = NULL,
 #' and \code{to} parameters.  Set \code{standard_eval} to TRUE if you want
 #' to pass the column names as variables. Default is FALSE, meaning it
 #' will use non-standard (unquoted) evaluation.
+#' @param style A \code{\link{cell_style}} object that defines a style 
+#' for all columns associated with the column defaults.  
 #' @return The modified table spec.
 #' @family table
 #' @examples
@@ -676,7 +691,7 @@ define_c <- function(var, label = NULL, format = NULL,
 #' @export
 column_defaults <- function(x, vars = NULL, from = NULL, to = NULL, label = NULL, 
                   format = NULL, align=NULL, label_align=NULL, width=NULL,
-                   n = NULL, standard_eval = FALSE) {
+                   n = NULL, standard_eval = FALSE, style = NULL) {
   
   if (!"table_spec" %in% class(x))
     stop("Input object must be of class 'table_spec'.")
@@ -859,6 +874,7 @@ column_defaults <- function(x, vars = NULL, from = NULL, to = NULL, label = NULL
     align else label_align
   dflt$width = width
   dflt$n = n
+  dflt$style = style
 
   x$col_dflts[[length(x$col_dflts) + 1]] <- dflt
   
@@ -1186,6 +1202,8 @@ spanning_header <- function(x, from, to, label = "",
 #' and \code{to} parameters.  Set \code{standard_eval} to TRUE if you want
 #' to pass the column names as variables. Default is FALSE, meaning it
 #' will use non-standard (unquoted) evaluation.
+#' @param style A \code{\link{cell_style}} object that contains the style
+#' specifications for the stub.
 #' @return The modified table spec.
 #' @family table
 #' @examples 
@@ -1262,7 +1280,8 @@ spanning_header <- function(x, from, to, label = "",
 #' #
 #' @export
 stub <- function(x, vars, label = "", label_align = NULL, 
-                 align = "left", width = NULL, standard_eval = FALSE) {
+                 align = "left", width = NULL, standard_eval = FALSE,
+                 style = NULL) {
   
   def <- structure(list(), class = c("stub_def", "list"))
   
@@ -1321,6 +1340,7 @@ stub <- function(x, vars, label = "", label_align = NULL,
   def$align <- align
   def$vars <- vars_c
   def$width <- width
+  def$style <- style
   
   x$stub <- def
   
