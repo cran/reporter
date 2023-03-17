@@ -105,7 +105,8 @@ add_info <- function(x,
 #' @noRd
 page_text <- function(text, font_size = NULL, 
                       xpos = NULL, ypos = NULL, bold = FALSE,
-                      align = NULL, alignx = NULL, has_page_numbers = NULL) {
+                      align = NULL, alignx = NULL, has_page_numbers = NULL,
+                      italics = FALSE, footnotes = FALSE) {
   
   txt <- structure(list(), class = c("page_text", "page_content", "list"))
   
@@ -114,8 +115,10 @@ page_text <- function(text, font_size = NULL,
   txt$xpos <- xpos
   txt$ypos <- ypos
   txt$bold <- bold
+  txt$italics <- italics
   txt$align <- align
   txt$alignx <- alignx  # In units of measure
+  txt$footnotes <- footnotes
   
   res1 <- grepl("[pg]", text, fixed = TRUE)
   res2 <- grepl("[tpg]", text, fixed = TRUE)
@@ -360,16 +363,20 @@ get_header <- function(page_count = 1,
   lst <- list()
   
   lst[[1]] <- pdf_object(1, pdf_dictionary(Type = "/Catalog",
-                                           Pages = ref(4)))
+                                           Pages = ref(5)))
 
+  # 
   fn <- "Courier"
   fb <- "Courier-Bold"
+  fi <- "Courier-Oblique"
   if (tolower(font_name) == "times") {
     fn <- "Times-Roman"
     fb <- "Times-Bold"
+    fi <- "Times-Italic"
   } else if (tolower(font_name) == "arial") {
     fn <- "Helvetica"
     fb <- "Helvetica-Bold"
+    fi <- "Helvetica-Oblique"
   }
 
   
@@ -382,6 +389,11 @@ get_header <- function(page_count = 1,
                                            Subtype = "/Type1", 
                                            BaseFont = paste0("/", fb),
                                            Encoding = "/WinAnsiEncoding"))
+  
+  lst[[4]] <- pdf_object(4, pdf_dictionary(Type = "/Font", 
+                                           Subtype = "/Type1", 
+                                           BaseFont = paste0("/", fi),
+                                           Encoding = "/WinAnsiEncoding"))
 
   
   if (page_count > 10)
@@ -389,7 +401,7 @@ get_header <- function(page_count = 1,
   else 
     kds <- paste(page_ids, "0 R", collapse = " ")
   
-  lst[[4]] <- pdf_object(4, pdf_dictionary(Type = "/Pages",
+  lst[[5]] <- pdf_object(5, pdf_dictionary(Type = "/Pages",
                                            Kids = pdf_array(kds),
                                            Count = page_count,                                                 
                                            MediaBox = pdf_array(0, 0, 
@@ -449,10 +461,10 @@ get_pages <- function(pages, margin_left, margin_top, page_height, page_width,
   # Also trial and error
   lh <- fontsize  + round(fontsize * .19, 2) 
   
-  # Starting ID is 5 because of standard header objects.
+  # Starting ID is 6 because of standard header objects.
   # This id variable will be incremented along the way 
   # as needed to get unique ids for the objects. 
-  id <- 5
+  id <- 6
   
   pgnum <- 0
   tpg <- length(pages)
@@ -496,7 +508,7 @@ get_pages <- function(pages, margin_left, margin_top, page_height, page_width,
         } else {
           
           # For PDF2 with page number flag set
-          if (cnt$has_page_numbers & !is.null(cnt$align)) {
+          if (cnt$has_page_numbers & !is.null(cnt$align) & !cnt$footnotes) {
             
             # Need to adjust x position if there are page numbers,
             # because when the page number tokens are replaced, 
@@ -520,8 +532,44 @@ get_pages <- function(pages, margin_left, margin_top, page_height, page_width,
                                    stx + nx, sty - cnt$ypos, 
                                    lh, ifelse(is.null(cnt$font_size), 
                                               fontsize, cnt$font_size),
-                                   fontscale, cnt$bold)
+                                   fontscale, cnt$bold, cnt$italics)
             
+          } else if (cnt$has_page_numbers & cnt$footnotes) {
+            
+            nx <- 0
+            
+            if (cnt$align %in% c("right", "center", "centre")) {
+              w1 <- get_text_width(cnt$text, fontname, 
+                                  ifelse(is.null(cnt$font_size), 
+                                         fontsize, cnt$font_size), 
+                                  units,
+                                  multiplier = 1.03) 
+              
+              txt <- get_page_numbers_pdf(cnt$text, pgnum, tpg)
+              
+              w2 <- get_text_width(txt, fontname, 
+                                  ifelse(is.null(cnt$font_size), 
+                                         fontsize, cnt$font_size), 
+                                  units,
+                                  multiplier = 1.03) 
+              
+              nx <- (w1 - w2) * conversion
+              
+              if (cnt$align %in% c("center", "centre")) {
+                
+                nx <- nx/2
+              }
+            
+            } else {
+              
+              txt <- get_page_numbers_pdf(cnt$text, pgnum, tpg) 
+            }
+            
+            tmp <- get_byte_stream(txt, 
+                                   stx + cnt$xpos + nx, sty - cnt$ypos, 
+                                   lh, ifelse(is.null(cnt$font_size), 
+                                              fontsize, cnt$font_size),
+                                   fontscale, cnt$bold, cnt$italics)
           } else {
             
             # For other PDF2
@@ -529,7 +577,7 @@ get_pages <- function(pages, margin_left, margin_top, page_height, page_width,
                                    stx + cnt$xpos, sty - cnt$ypos, 
                                    lh, ifelse(is.null(cnt$font_size), 
                                               fontsize, cnt$font_size),
-                                   fontscale, cnt$bold)
+                                   fontscale, cnt$bold, cnt$italics)
             
           }
           
@@ -903,8 +951,9 @@ render.pdf_text_stream <- function(x) {
 # and error.  PDF has a lot of different way to render an image, and most
 # are very complicated.  This is the simplest one. Requires a JPEG.  
 #' @exportS3Method render pdf_image_stream
-render.pdf_image_stream <- function(x, view = FALSE) {
+render.pdf_image_stream <- function(x) {
   
+  view = FALSE
   
   if (length(x$contents) > 1) {
     cnts <- unlist(x$contents)
@@ -1193,12 +1242,13 @@ pdf_page <- function(id, content_id, graphic_ids = NULL) {
     
     
     res <- pdf_dictionary(Font = pdf_dictionary(F1 = ref(2),
-                                                F2 = ref(3)), 
+                                                F2 = ref(3),
+                                                F3 = ref(4)), 
                           ProcSet = procs,
                           XObject = xobj)
     
     parms <-  pdf_dictionary(Type = "/Page",
-                             Parent = ref(4),
+                             Parent = ref(5),
                              Contents = ref(content_id),
                              Resources = res)
                              
@@ -1207,11 +1257,12 @@ pdf_page <- function(id, content_id, graphic_ids = NULL) {
     procs <- pdf_array("/PDF", "/Text")
     
     res <- pdf_dictionary(Font = pdf_dictionary(F1 = ref(2),
-                                                F2 = ref(3)), 
+                                                F2 = ref(3),
+                                                F3 = ref(4)), 
                           ProcSet = procs)
     
     parms <-  pdf_dictionary(Type = "/Page",
-                             Parent = ref(4),
+                             Parent = ref(5),
                              Contents = ref(content_id),
                              Resources = res)
   }
@@ -1338,7 +1389,8 @@ ref <- function(id) {
 #' characters.
 #' @noRd
 get_byte_stream <- function(contents, startx, starty, 
-                            lineheight, fontsize, fontscale, bold = FALSE) {
+                            lineheight, fontsize, fontscale, bold = FALSE, 
+                            italics = FALSE) {
   
   # Calculate y positions
   ypos <- seq(from = starty, length.out = length(contents), by = -lineheight)
@@ -1361,7 +1413,9 @@ get_byte_stream <- function(contents, startx, starty,
   if (bold == TRUE)
     bld <- "/F2 "
   
-
+  if (italics == TRUE)
+    bld <- "/F3 "
+  
   # Create report line
   ret <- paste0("BT ", bld , fontsize, 
                 " Tf ", fontscale, " Tz ", startx, " ", ypos, " Td <", 

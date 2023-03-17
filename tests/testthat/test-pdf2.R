@@ -924,7 +924,8 @@ test_that("pdf2-22: Page by works as expected.", {
     titles("Table 1.0", "My Nice Report with a Page By", borders = "outside", 
            blank_row = "none") %>%
     page_by(Species, label = "Species", align = "center", borders = "all", 
-            blank_row = "none")
+            blank_row = "none") %>%
+    footnotes("My footnote 1", "Page [pg] of [tpg]", borders = "none", align = "right")
 
   rpt <- create_report(fp, output_type = "PDF", font = fnt,
                        font_size = fsz, orientation = "landscape") %>%
@@ -933,8 +934,7 @@ test_that("pdf2-22: Page by works as expected.", {
     page_header("Page [pg] of [tpg]", "Page [pg] of [tpg]") %>%
     page_footer("Page [pg] of [tpg]", 
                 "Page [pg] of [tpg]", 
-                "Page [pg] of [tpg]") %>%
-    footnotes("My footnote 1", "My footnote 2", borders = "none")
+                "Page [pg] of [tpg]") 
 
   res <- write_report(rpt)
   res
@@ -2628,6 +2628,77 @@ test_that("pdf2-69: Bolding, column defaults, and stub works.", {
 })
 
 
+test_that("pdf2-70: Spanning header bold work as expected.", {
+  
+  
+  fp <- file.path(base_path, "pdf2/test70.pdf")
+  
+  dat <- mtcars[1:15, ]
+  
+  tbl <- create_table(dat, borders = c( "none")) %>%
+    spanning_header(cyl, disp, "Span 1", label_align = "left") %>%
+    spanning_header(hp, wt, "Span 2", underline = FALSE, bold = TRUE) %>%
+    spanning_header(qsec, vs, "Span 3", n = 10) %>%
+    spanning_header(drat, gear, "Super Duper\nWrapped Span",
+                    n = 11, level = 2, bold = TRUE) %>%
+    titles("Table 1.0", "My Nice Table", blank_row = "none", 
+           borders = c("top", "bottom")) %>%
+    footnotes("My footnote 1", "My footnote 2", 
+              blank_row = "none", borders = c("top", "bottom"))
+  
+  rpt <- create_report(fp, output_type = "PDF", font = fnt,
+                       font_size = fsz, orientation = "landscape") %>%
+    set_margins(top = 1, bottom = 1) %>%
+    page_header("Left", c("Right1", "Right2", "Right3"), blank_row = "below") %>%
+    add_content(tbl) %>%
+    page_footer("Left1", "Center1", "Right1")
+  
+  res <- write_report(rpt)
+  res
+  res$column_widths
+  
+  expect_equal(file.exists(res$modified_path), TRUE)
+  expect_equal(res$pages, 1)
+  
+})
+
+
+test_that("pdf2-71: Italic footnotes work as expected.", {
+  
+  
+  fp <- file.path(base_path, "pdf2/test71.pdf")
+  
+  dat <- mtcars[1:15, ]
+  
+  tbl <- create_table(dat, borders = c( "none")) %>%
+    spanning_header(cyl, disp, "Span 1", label_align = "left") %>%
+    spanning_header(hp, wt, "Span 2", underline = FALSE, bold = FALSE) %>%
+    spanning_header(qsec, vs, "Span 3", n = 10) %>%
+    spanning_header(drat, gear, "Super Duper\nWrapped Span",
+                    n = 11, level = 2, bold = FALSE) %>%
+    titles("Table 1.0", "My Nice Table", blank_row = "none", 
+           borders = c("top", "bottom")) %>%
+    footnotes("My italic footnote1", "My italic footnote2", italics = TRUE, 
+              blank_row = "none", borders = "top") %>%
+    footnotes("My italic footnote", "Page [pg] of [tpg]", 
+              blank_row = "none", borders = c("bottom"))
+  
+  rpt <- create_report(fp, output_type = "PDF", font = fnt,
+                       font_size = fsz, orientation = "landscape") %>%
+    set_margins(top = 1, bottom = 1) %>%
+    page_header("Left", c("Right1", "Right2", "Right3"), blank_row = "below") %>%
+    add_content(tbl) %>%
+    page_footer("Left1", "Center1", "Right1")
+  
+  res <- write_report(rpt)
+  res
+  res$column_widths
+  
+  expect_equal(file.exists(res$modified_path), TRUE)
+  expect_equal(res$pages, 1)
+  
+})
+
 
 # # User Tests --------------------------------------------------------------
 
@@ -2752,7 +2823,8 @@ test_that("pdf2-user1: demo table works.", {
              "Specify Population Ω µ β ¥ ∑ ≠ ≤ £ ∞ ؈ ლ  \Ub8a 鬼") %>%
       add_content(tbl) %>%
       footnotes("Special symbols \U221e to mess things up: Ω µ β ¥ ∑ ≠ ≤ £ ∞ ؈ ლ  \Ub8a 鬼") %>%
-      footnotes("Special symbols µ Ω £ there to mess things up: ", "Page [pg] of [tpg]") %>%
+      footnotes("Special symbols µ Ω £ there to mess things up: ", "Page [pg] of [tpg]", 
+                align = "left", italics = TRUE) %>%
       page_header("Left µ Ω £ ", "Right") %>%
       page_footer("Time µ Ω £ ", right = "Page [pg] of [tpg]")
 
@@ -2911,7 +2983,7 @@ test_that("pdf2-user2: demo table with stub works.", {
 
 })
 
-test_that("user3: listings works.", {
+test_that("pdf2-user3: listings works.", {
   if (dev == TRUE) {
     # Data Filepath
     dir_data <- file.path(data_dir, "data")
@@ -2978,7 +3050,7 @@ test_that("user3: listings works.", {
 })
 
 
-test_that("user4: listing in cm and times works.", {
+test_that("pdf2-user4: listing in cm and times works.", {
   if (dev == TRUE) {
     # Data Filepath
     dir_data <- file.path(data_dir, "data")
@@ -3041,7 +3113,7 @@ test_that("user4: listing in cm and times works.", {
 
 })
 
-test_that("user5: Portrait in 12pt Arial works as expected.", {
+test_that("pdf2-user5: Portrait in 12pt Arial works as expected.", {
 
   if (dev == TRUE) {
 
