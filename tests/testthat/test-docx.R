@@ -1526,6 +1526,98 @@ test_that("docx42: Italic footnotes work as expected.", {
   
 })
 
+test_that("docx43: Two plots on report works as expected.", {
+  
+  if (dev == TRUE) {
+    
+    
+    library(ggplot2)
+    
+    fp <- file.path(base_path, "docx/test43.docx")
+    
+    p1 <- ggplot(mtcars, aes(x=cyl, y=mpg)) + geom_point()
+    
+    plt1 <- create_plot(p1, height = 4, width = 8, borders = c("none"))
+    
+    
+    p2 <- ggplot(mtcars, aes(x=wt, y=mpg)) + geom_point()
+    
+    plt2 <- create_plot(p2, height = 4, width = 8, borders = c("none"))
+    
+    
+    rpt <- create_report(fp, output_type = "DOCX", font = fnt, font_size =fsz) %>%
+      page_header("Client", "Study: XYZ") %>%
+      set_margins(top = 1, bottom = 1) %>%
+      add_content(plt1, align = "center") %>%
+      add_content(plt2, align = "center") %>%
+      page_footer("Time", "Confidential", "Page [pg] of [tpg]") %>%
+      titles("Figure 1.0", "MTCARS Miles per Cylinder Plot", borders = "none") %>%
+      footnotes("* Motor Trend, 1974", borders = "none")
+    
+    
+    res <- write_report(rpt)
+    
+    #print(res)
+    
+    expect_equal(file.exists(fp), TRUE)
+    expect_equal(res$pages, 2)
+    
+  } else 
+    expect_equal(TRUE, TRUE)
+  
+})
+
+
+test_that("docx44: Stub indent.", {
+  
+  
+  fp <- file.path(base_path, "docx/test44.docx")
+  
+  
+  # Read in prepared data
+  df <- read.table(header = TRUE, text = '
+      var     label        A             B          
+      "ampg"   "N"          "19"          "13"         
+      "ampg"   "Mean"       "18.8 (6.5)"  "22.0 (4.9)" 
+      "ampg"   "Median"     "16.4"        "21.4"       
+      "ampg"   "Q1 - Q3"    "15.1 - 21.2" "19.2 - 22.8"
+      "ampg"   "Range"      "10.4 - 33.9" "14.7 - 32.4"
+      "cyl"    "8 Cylinder" "10 ( 52.6%)" "4 ( 30.8%)" 
+      "cyl"    "6 Cylinder and more perhaps more" "4 ( 21.1%)"  "3 ( 23.1%)" 
+      "cyl"    "4 Cylinder" "5 ( 26.3%)"  "6 ( 46.2%)"')
+  
+  ll <- "Here is a super long label to see if it can span the entire table."
+  
+  # Create table
+  tbl <- create_table(df, first_row_blank = TRUE, borders = c("all")) %>% 
+    stub(c("var", "label"), width = .9) %>% 
+    define(var, blank_after = TRUE, label_row = TRUE, 
+           format = c(ampg = ll, cyl = "Cylinders")) %>% 
+    define(label, indent = .25) %>% 
+    define(A, label = "Group A", align = "center", n = 19) %>% 
+    define(B, label = "Group B", align = "center", n = 13)
+  
+  
+  # Create report and add content
+  rpt <- create_report(fp, orientation = "portrait", output_type = "DOCX",
+                       font = "Times") %>% 
+    page_header(left = "Client: Motor Trend", right = "Study: Cars") %>% 
+    titles("Table 1.0", "MTCARS Summary Table") %>% 
+    add_content(tbl) %>% 
+    footnotes("* Motor Trend, 1974") %>%
+    page_footer(left = "Left", 
+                center = "Confidential", 
+                right = "Page [pg] of [tpg]")
+  
+  
+  
+  res <- write_report(rpt)
+  res
+  expect_equal(file.exists(fp), TRUE)
+  
+  
+})
+
 # User Tests --------------------------------------------------------------
 
 
@@ -1771,7 +1863,7 @@ test_that("docx-user2: demo table with stub works.", {
 
     # Define table
     tbl <- create_table(demo, first_row_blank = TRUE, borders = "all") %>%
-      stub(c("var", "label"), width = 2.5) %>%
+      stub(c("var", "label"), width = 1.5) %>%
       column_defaults(width = 1) %>%
       define(var, blank_after = TRUE,
              format = block_fmt, label = "", label_row = TRUE) %>%

@@ -155,7 +155,7 @@ create_table_pages_pdf <- function(rs, cntnt, lpg_rows) {
   # Split long text strings into multiple rows. Number of rows are stored in
   # ..row variable. If too slow, may need to be rewritten in C
   sp <- split_cells_variable(fdat, widths_uom, rs$font, 
-                               rs$font_size, rs$units, rs$output_type) 
+                               rs$font_size, rs$units, rs$output_type, rs$char_width) 
   fdat <- sp$data
   wdat <- sp$widths
   
@@ -205,7 +205,10 @@ create_table_pages_pdf <- function(rs, cntnt, lpg_rows) {
   for(s in splits) {
     
     # Subset text widths by current split rows
-    spend <- spstart + nrow(s) - 1
+    #spend <- spstart + nrow(s) - 1
+    rnms <- rownames(s)
+    spstart <- rnms[1]
+    spend <- rnms[length(rnms)]
     spwidths <- wdat[seq(spstart, spend)]
     
     for(pg in wraps) {
@@ -240,7 +243,7 @@ create_table_pages_pdf <- function(rs, cntnt, lpg_rows) {
       fp_offset <- 0
     }
     
-    spstart <- spend + 1
+    #spstart <- spend + 1
   }
   
   ret <- list(widths = widths_uom, page_list = pg_lst)
@@ -1043,6 +1046,8 @@ get_table_body_pdf <- function(rs, tbl, widths, algns, talgn, tbrdrs,
   nms <- nms[!is.controlv(nms)]
   wdths <- widths[nms]
   
+  #saveRDS(spwidths, "spwidths0a.rds")
+  
   if (!"..blank" %in% names(tbl)) 
     blnks <- rep("", nrow(tbl))
   else 
@@ -1284,7 +1289,8 @@ get_table_body_pdf <- function(rs, tbl, widths, algns, talgn, tbrdrs,
     
   }
 
-  
+  # fcntr <- fcntr + 1
+  # saveRDS(ret, paste0("ret", fcntr, ".rds"))
 
   
   rws <- rline
@@ -1299,3 +1305,4 @@ get_table_body_pdf <- function(rs, tbl, widths, algns, talgn, tbrdrs,
   
 }
 
+fcntr <- 0
