@@ -158,12 +158,19 @@ add_blank_row <- function(x, location="below", vars = NULL){
     else
       rw[1, i] <- rv
   }
+  
+  # Change copy position depending on location
+  cpos <- 1
+  if (location == "below")
+    cpos <- nrow(x)
 
   # Set page and page by values
   if ("..page_by" %in% names(x))
     rw[1, "..page_by"] <-  x[1, "..page_by"]
-  if ("..page" %in% names(x))
-    rw[1, "..page"] <-  x[1, "..page"]
+  if ("..page" %in% names(x)) {
+    # rw[1, "..page"] <-  x[1, "..page"]
+    rw[1, "..page"] <-  x[cpos, "..page"]
+  }
   
   # Add the blank row to the specified location.
   ret <- x
@@ -185,6 +192,9 @@ add_blank_row <- function(x, location="below", vars = NULL){
     rw2 <- rw
     rw$..blank <- "A"
     rw2$..blank <- "B"
+    
+    if ("..page" %in% names(x)) 
+      rw2[1, "..page"] <- x[nrow(x), "..page"]
     
     ret <- rbind(rw, ret, rw2)
   }
@@ -860,6 +870,7 @@ push_down <- function(x) {
 #' @details This function is performed in the page splitting routine
 #' so that groups which span multiple pages retain a label at the top 
 #' of the page.
+#' @import common
 #' @noRd
 dedupe_pages <- function(pgs, defs) {
   
@@ -879,6 +890,9 @@ dedupe_pages <- function(pgs, defs) {
           # Fill with blanks as appropriate
           w <- min(nchar(dat[[def$var_c]])) # Take min to exclude label row
           v <- paste0(rep(" ", times = w), collapse = "")
+          
+          # dat[[def$var_c]] <- ifelse(changed(dat[[def$var_c]]), 
+          #                            dat[[def$var_c]], v) 
           
           dat[[def$var_c]] <- ifelse(!duplicated(dat[[def$var_c]]), 
                                      dat[[def$var_c]], v) 
