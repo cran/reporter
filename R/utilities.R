@@ -472,8 +472,13 @@ split_strings <- function(strng, width, units, multiplier = 1.03) {
       
       wrds <- strsplit(split, " ", fixed = TRUE)[[1]]
       
-      lngths <- (suppressWarnings(strwidth(wrds, units = un)) + 
-                   suppressWarnings(strwidth(" ", units = un))) * multiplier
+      # Old code
+      # lngths <- (suppressWarnings(strwidth(wrds, units = un)) + 
+      #              suppressWarnings(strwidth(" ", units = un))) * multiplier
+
+      if (length(wrds) > 0) {
+        lngths <- (strwdth(wrds, un) + strwdth(" ", un)) * multiplier
+      } 
       
       # Loop through words and add up lines
       for (i in seq_along(wrds)) {
@@ -540,6 +545,30 @@ split_strings <- function(strng, width, units, multiplier = 1.03) {
   
   return(ret)
 }
+
+
+
+strwdth <- Vectorize(function(wrd, un) {
+  
+  if (is.na(wrd)) {
+    ret <- 0 
+  } else {
+
+    ret <- tryCatch({
+    
+      suppressWarnings(strwidth(wrd, units = un))
+      
+      
+    
+    }, error = function(cond) {
+      
+      suppressWarnings(strwidth("a", units = un)) * nchar(wrd)
+        
+    })
+  }
+  
+  return(ret)
+}, USE.NAMES = FALSE, SIMPLIFY = TRUE)
 
 #' @description Calling function is responsible for opening the 
 #' device context and assigning the font.  This function will use 
@@ -891,11 +920,11 @@ dedupe_pages <- function(pgs, defs) {
           w <- min(nchar(dat[[def$var_c]])) # Take min to exclude label row
           v <- paste0(rep(" ", times = w), collapse = "")
           
-          # dat[[def$var_c]] <- ifelse(changed(dat[[def$var_c]]), 
-          #                            dat[[def$var_c]], v) 
+          dat[[def$var_c]] <- ifelse(changed(dat[[def$var_c]]),
+                                     dat[[def$var_c]], v)
           
-          dat[[def$var_c]] <- ifelse(!duplicated(dat[[def$var_c]]), 
-                                     dat[[def$var_c]], v) 
+          # dat[[def$var_c]] <- ifelse(!duplicated(dat[[def$var_c]]), 
+          #                            dat[[def$var_c]], v) 
         }
       }
     }
@@ -1427,7 +1456,13 @@ get_text_width <- function(txt, font, font_size = 10, units = "inches",
   #R.devices::devEval("nulldev", {
     pdf(NULL)
     par(family = f, ps = font_size)
-    ret <- suppressWarnings(strwidth(txt, units = un)) * multiplier 
+    if (length(txt) > 0) {
+      #ret <- suppressWarnings(strwidth(txt, units = un)) * multiplier 
+      ret <- strwdth(txt, un) * multiplier 
+    } else {
+      
+      ret <- 0 
+    }
     dev.off()
   #})
   
