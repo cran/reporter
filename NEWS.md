@@ -1,3 +1,12 @@
+# reporter 1.4.4
+
+* Fixed bug on dedupe functionality. 
+* Fixed bug on `page_by()` format for `create_plot()`.
+* Fixed bug on continuous table outside borders.
+* Fixed bug with early page break when appending content dynamically.
+* Fixed bug on page numbers in title for RTF.
+* Fixed bug where show_cols was overriding `define()` visible = FALSE. 
+
 # reporter 1.4.3
 
 * Fix dedupe functionality on `define()` function when values are not unique. 

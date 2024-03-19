@@ -978,6 +978,9 @@ test_that("rtf2-27: Plot with page by on plot works as expected.", {
 
   fp <- file.path(base_path, "rtf2/test27.rtf")
 
+  fmt <- value(condition(x == 4, "4 Cylinder"),
+               condition(x == 6, "6 Cylinder"),
+               condition(x == 8, "8 Cylinder"))
 
   dat <- mtcars[order(mtcars$cyl), ]
 
@@ -989,7 +992,7 @@ test_that("rtf2-27: Plot with page by on plot works as expected.", {
 
   plt <- create_plot(p, height = 4, width = 8) %>%
     titles("Figure 1.0", "MTCARS Miles per Cylinder Plot", blank_row = "none") %>%
-    page_by(cyl, "Cylinders: ") %>%
+    page_by(cyl, "Cylinders: ", format = fmt) %>%
     footnotes("* Motor Trend, 1974")
 
   rpt <- create_report(fp, output_type = "RTF", font = fnt, font_size = fsz) %>%
@@ -2824,7 +2827,7 @@ test_that("rtf2-80: Two tables one continuous works as expected.", {
  #   file.show(res$modified_path)
 
     expect_equal(file.exists(fp), TRUE)
-    expect_equal(res$pages, 7)
+    expect_equal(res$pages, 6)
 
 
   } else {
@@ -3405,6 +3408,150 @@ test_that("test95: Page break with blank row after works as expected.", {
   expect_equal(file.exists(fp), TRUE)
   expect_equal(res$pages, 11)
 
+})
+
+
+test_that("rtf2-96: Outside borders on continuous tables work as expected.", {
+  
+  if (dev) {
+    
+    fp <- file.path(base_path, "rtf2/test96.rtf")
+    
+    dat <- iris
+    
+    
+    tbl <- create_table(dat, continuous = TRUE, borders = "outside") %>%
+      # titles("My Title") %>%
+      footnotes("My footnotes", blank_row = "none")
+    
+    
+    rpt <- create_report(fp, output_type = "RTF",
+                         font = "Arial", orientation = "portrait") %>%
+      add_content(tbl) %>%
+      footnotes("Here", footer = TRUE)
+    
+    res <- write_report(rpt)
+    
+    
+    # file.show(res$modified_path)
+    
+    expect_equal(file.exists(fp), TRUE)
+    # expect_equal(res$pages, 3)
+    
+    
+  } else {
+    
+    expect_equal(TRUE, TRUE)
+    
+  }
+  
+})
+
+test_that("rtf2-97: Page X of Y works as expected.", {
+  
+  if (dev == TRUE) {
+    
+    
+    fp <- file.path(base_path, "rtf2/test97.rtf")
+    
+    dat <- iris
+    
+    
+    tbl <- create_table(dat, borders = "none") %>%
+      titles("Table 1.0", "My Nice Irises", "Another Title", "Page [pg] of [tpg]") %>%
+      define(Sepal.Length, label = "Sepal Length", width = 1, align = "center") %>%
+      define(Sepal.Width, label = "Sepal Width", width = 1, align = "centre") %>%
+      define(Species, blank_after = TRUE) %>%
+      footnotes("Table footnote Page [pg] of [tpg]")
+    
+    rpt <- create_report(fp, output_type = "RTF", font = fnt,
+                         font_size = 12, orientation = "landscape") %>%
+      titles("Report Title", "Page [pg] of [tpg]") %>%
+      set_margins(top = 1, bottom = 1) %>%
+      page_header("Left", c("Page [pg] of [tpg]")) %>%
+      add_content(tbl, blank_row = "none") %>%
+      page_footer("Left1", "Center1", "Page [pg] of [tpg]") %>%
+      footnotes("My footnote 1", "My footnote 2", "Page [pg] of [tpg]")
+    
+    res <- write_report(rpt)
+    
+    expect_equal(file.exists(fp), TRUE)
+    expect_equal(res$pages, 11)
+    
+  } else
+    expect_equal(TRUE, TRUE)
+})
+
+test_that("rtf2-98: Title header blank rows work as expected.", {
+  
+  
+  fp <- file.path(base_path, "rtf2/test98.rtf")
+  
+  dat <- iris
+  
+  tbl <- create_table(dat, width = 8.9, borders = "all") %>%
+    title_header("Table 1.0", "My Nice Table",
+                 right = c("Right1",
+                           "Right2", "Page [pg] of [tpg]"),
+                 blank_row = "both", borders = "all") 
+
+  
+  rpt <- create_report(fp, output_type = "RTF", font = "Arial",
+                       font_size = 10, orientation = "landscape") %>%
+    page_header("Left", "Right", blank_row = "below") %>%
+    set_margins(top = 1, bottom = 1) %>%
+    add_content(tbl) %>%
+    footnotes("My footnote 1", "My footnote 2") %>%
+    page_footer("Left1", "Center1", "Right1")
+  
+  res <- write_report(rpt)
+  res
+  res$column_widths
+  
+  expect_equal(file.exists(fp), TRUE)
+  expect_equal(res$pages, 7)
+  expect_equal(length(res$column_widths[[1]]), 5)
+  
+  
+})
+
+
+test_that("rtf2-99: Multi page table removes blank spaces.", {
+  
+  if (dev == TRUE) {
+    
+    
+    fp <- file.path(base_path, "rtf2/test99.rtf")
+    
+    dat1 <- iris[1:10, ]
+    dat2 <- iris[11:20, ]
+    dat3 <- iris[21:30, ]
+    
+    
+    tbl1 <- create_table(dat1, borders = "none") %>%
+      titles("Table 1.0", "My Nice Irises1") 
+    
+    tbl2 <- create_table(dat2, borders = "none") %>%
+      titles("Table 1.0", "My Nice Irises2")
+
+    tbl3 <- create_table(dat3, borders = "none") %>%
+      titles("Table 1.0", "My Nice Irises3")
+    
+    rpt <- create_report(fp, output_type = "RTF", font = fnt,
+                         font_size = 12, orientation = "landscape") %>%
+      set_margins(top = 1, bottom = 1) %>%
+      add_content(tbl1, blank_row = "none") |> 
+      add_content(tbl2, blank_row = "none") |> 
+      add_content(tbl3, blank_row = "none") 
+      
+    
+    res <- write_report(rpt)
+    
+    expect_equal(file.exists(fp), TRUE)
+    expect_equal(res$pages, 3)
+    
+  } else
+    expect_equal(TRUE, TRUE)
 })
 
 

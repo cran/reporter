@@ -919,12 +919,19 @@ test_that("pdf2-22: Page by works as expected.", {
   fp <- file.path(base_path, "pdf2/test22.pdf")
 
   dat <- iris
+  dat$Species <- as.character(dat$Species)
+  
+  library(fmtr)
+  
+  fmt <- value(condition(x == "setosa", "Setosa"),
+               condition(x == "versicolor", "Versicolor"),
+               condition(x == "virginica", "Virginica"))
 
   tbl <- create_table(dat, borders = "all") %>%
     titles("Table 1.0", "My Nice Report with a Page By", borders = "outside", 
            blank_row = "none") %>%
     page_by(Species, label = "Species", align = "center", borders = "all", 
-            blank_row = "none") %>%
+            blank_row = "none", format = fmt) %>%
     footnotes("My footnote 1", "Page [pg] of [tpg]", borders = "none", align = "right")
 
   rpt <- create_report(fp, output_type = "PDF", font = fnt,
@@ -1097,6 +1104,11 @@ test_that("pdf2-27: Plot with page by on plot works as expected.", {
   
   if (dev) {
     library(ggplot2)
+    library(fmtr)
+    
+    fmt <- value(condition(x == 4, "4 Cylinder"),
+                 condition(x == 6, "6 Cylinder"),
+                 condition(x == 8, "8 Cylinder"))
   
     fp <- file.path(base_path, "pdf2/test27.pdf")
   
@@ -1112,7 +1124,8 @@ test_that("pdf2-27: Plot with page by on plot works as expected.", {
     plt <- create_plot(p, height = 4, width = 8, borders = "all") %>%
       titles("Figure 1.0", "MTCARS Miles per Cylinder Plot", blank_row = "none",
              borders = "all") %>%
-      page_by(cyl, "Cylinders2: ", blank_row = "below", borders = "all") %>%
+      page_by(cyl, "Cylinders2: ", blank_row = "below", 
+              borders = "all", format = fmt) %>%
       footnotes("* Motor Trend, 1974", borders = "all")
   
     rpt <- create_report(fp, output_type = "PDF", font = fnt, font_size = fsz) %>%
@@ -2948,6 +2961,103 @@ test_that("pdf2-78: Page by with wrap works as expected.", {
   expect_equal(res$pages, 6)
   expect_equal(length(res$column_widths[[1]]), 5)
   
+  
+})
+
+# Failing right now.  Reminder to fix wrap.rmd
+test_that("pdf2-79: show_cols does not override define", {
+  
+  if (dev) {
+    
+    # Create temp file name
+    fp <- file.path(base_path, "pdf2/test79.pdf")
+    
+    # Prepare data
+    dat <- mtcars[1:10, ]
+    dat <- data.frame(vehicle = rownames(dat), dat)
+    
+    # Define table
+    tbl <- create_table(dat, show_cols = 1:8)  |> 
+      define(vehicle, label = "Vehicle", width = 3, id_var = TRUE, align = "left")  |> 
+      define(mpg, label = "Miles per Gallon", width = 1) |> 
+      define(cyl, label = "Cylinders", format = "%.1f")  |> 
+      define(disp, label = "Displacement")  |>  
+      define(hp, label = "Horsepower", page_wrap = TRUE) |> 
+      define(drat, visible = FALSE)  |> 
+      define(wt, label = "Weight")  |> 
+      define(qsec, label = "Quarter Mile Time", width = 1.5) 
+    
+    
+    # Create the report
+    rpt <- create_report(fp, output_type = "PDF", 
+                         font = "Courier", font_size = 12)  |> 
+      titles("Listing 2.0", "MTCARS Data Listing with Page Wrap")  |> 
+      set_margins(top = 1, bottom = 1)  |> 
+      add_content(tbl)  |> 
+      page_footer(right = "Page [pg] of [tpg]")
+    
+    # Write the report
+    res <- write_report(rpt)
+    
+    
+    expect_equal(file.exists(fp), TRUE)
+    expect_equal(res$pages, 2)
+    expect_equal(length(res$column_widths[[1]]), 7)
+    expect_equal("drat" %in% names(res$column_widths[[1]]), FALSE)
+  
+  } else {
+    
+    expect_equal(TRUE, TRUE) 
+  }
+  
+})
+
+test_that("pdf2-80: spanning header works on show_cols none and defined cols", {
+  
+  if (dev) {
+    
+    # Create temp file name
+    fp <- file.path(base_path, "pdf2/test80.pdf")
+    
+    # Prepare data
+    dat <- mtcars[1:10, ]
+    dat <- data.frame(vehicle = rownames(dat), dat)
+    
+    # Define table
+    tbl <- create_table(dat, show_cols = "none")  |> 
+      spanning_header(mpg, qsec, label = "fork") |> 
+      column_defaults(from = mpg, to = qsec, width = 1) |> 
+      define(vehicle, label = "Vehicle", width = 3, id_var = TRUE, align = "left")  |> 
+      define(mpg, label = "Miles per Gallon", width = 1) |> 
+      define(cyl, label = "Cylinders", format = "%.1f")  |> 
+      define(disp, label = "Displacement", width = 1.25)  |>  
+      define(hp, label = "Horsepower", page_wrap = TRUE) |> 
+      define(drat, visible = FALSE)  |> 
+      define(wt, label = "Weight")  |> 
+      define(qsec, label = "Quarter Mile Time", width = 1.5) 
+    
+    
+    # Create the report
+    rpt <- create_report(fp, output_type = "PDF", 
+                         font = "Courier", font_size = 12)  |> 
+      titles("Listing 2.0", "MTCARS Data Listing with Page Wrap")  |> 
+      set_margins(top = 1, bottom = 1)  |> 
+      add_content(tbl)  |> 
+      page_footer(right = "Page [pg] of [tpg]")
+    
+    # Write the report
+    res <- write_report(rpt)
+    
+    
+    expect_equal(file.exists(fp), TRUE)
+    expect_equal(res$pages, 2)
+    expect_equal(length(res$column_widths[[1]]), 7)
+    expect_equal("drat" %in% names(res$column_widths[[1]]), FALSE)
+    
+  } else {
+    
+    expect_equal(TRUE, TRUE) 
+  }
   
 })
 

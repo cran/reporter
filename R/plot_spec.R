@@ -277,6 +277,10 @@ create_plot_pages_text <- function(rs, cntnt, lpg_rows, tmp_dir) {
         # print(pgby$var)
         # print(dat)
         pgval <- dat[1, c(pgby$var)]
+        
+        if (!is.null(pgby$format)) {
+          pgval <- fapply(pgval, pgby$format)
+        }
       }
       
       # Save plot to temp file
@@ -285,7 +289,7 @@ create_plot_pages_text <- function(rs, cntnt, lpg_rows, tmp_dir) {
         # Deal with survival plots
         ggplot2::ggsave(tmp_nm, gridExtra::arrangeGrob(grobs = p), 
                         width =  plt$width, height = plt$height, 
-                        dpi = 300, units = u )
+                        dpi = 300, units = u)
         
         
       } else {
@@ -515,6 +519,10 @@ create_plot_pages_rtf <- function(rs, cntnt, lpg_rows, tmp_dir) {
         # print(pgby$var)
         # print(dat)
         pgval <- dat[1, c(pgby$var)]
+        
+        if (!is.null(pgby$format)) {
+          pgval <- fapply(pgval, pgby$format)
+        }
       }
       
       # Save plot to temp file
@@ -754,6 +762,10 @@ create_plot_pages_html <- function(rs, cntnt, lpg_rows, tmp_dir) {
         # print(pgby$var)
         # print(dat)
         pgval <- dat[1, c(pgby$var)]
+        
+        if (!is.null(pgby$format)) {
+          pgval <- fapply(pgval, pgby$format)
+        }
       }
       
       # Save plot to temp file
@@ -980,7 +992,12 @@ create_plot_pages_pdf <- function(rs, cntnt, lpg_rows, tmp_dir) {
       if (!is.null(pgby)) {
         # print(pgby$var)
         # print(dat)
+
         pgval <- dat[1, c(pgby$var)]
+        
+        if (!is.null(pgby$format)) {
+          pgval <- fapply(pgval, pgby$format)
+        }
       }
       
       # Save plot to temp file
@@ -1277,6 +1294,10 @@ create_plot_pages_docx<- function(rs, cntnt, lpg_rows, tmp_dir, imgCnt) {
         # print(pgby$var)
         # print(dat)
         pgval <- dat[1, c(pgby$var)]
+        
+        if (!is.null(pgby$format)) {
+          pgval <- fapply(pgval, pgby$format)
+        }
       }
       
       # Save plot to temp file

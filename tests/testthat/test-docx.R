@@ -504,6 +504,9 @@ test_that("docx14: Plot with page by on plot works as expected.", {
 
   fp <- file.path(base_path, "docx/test14.docx")
 
+  fmt <- value(condition(x == 4, "4 Cylinder"),
+               condition(x == 6, "6 Cylinder"),
+               condition(x == 8, "8 Cylinder"))
 
   dat <- mtcars[order(mtcars$cyl), ]
 
@@ -518,7 +521,8 @@ test_that("docx14: Plot with page by on plot works as expected.", {
     titles("Figure 1.0", "MTCARS Miles per Cylinder Plot",
            borders = "all",
            blank_row = "both") %>%
-    page_by(cyl, "Cylinders: ", borders = "all", blank_row = "both") %>%
+    page_by(cyl, "Cylinders: ", borders = "all", blank_row = "both",
+            format = fmt) %>%
     footnotes("* Motor Trend, 1974", borders = "all", valign = "top",
               blank_row = "both")
 
@@ -1945,6 +1949,44 @@ test_that("docx55: Top margin 1.5 works as expected.", {
   expect_equal(length(res$column_widths[[1]]), 5)
 
 
+})
+
+test_that("docx-56: Multi page table removes blank spaces.", {
+  
+  if (dev == TRUE) {
+    
+    
+    fp <- file.path(base_path, "docx/test56.docx")
+    
+    dat1 <- iris[1:10, ]
+    dat2 <- iris[11:20, ]
+    dat3 <- iris[21:30, ]
+    
+    
+    tbl1 <- create_table(dat1, borders = "none") %>%
+      titles("Table 1.0", "My Nice Irises1") 
+    
+    tbl2 <- create_table(dat2, borders = "none") %>%
+      titles("Table 1.0", "My Nice Irises2")
+    
+    tbl3 <- create_table(dat3, borders = "none") %>%
+      titles("Table 1.0", "My Nice Irises3")
+    
+    rpt <- create_report(fp, output_type = "DOCX", font = fnt,
+                         font_size = 12, orientation = "landscape") %>%
+      set_margins(top = 1, bottom = 1) %>%
+      add_content(tbl1, blank_row = "none") |> 
+      add_content(tbl2, blank_row = "none") |> 
+      add_content(tbl3, blank_row = "none") 
+    
+    
+    res <- write_report(rpt)
+    
+    expect_equal(file.exists(fp), TRUE)
+    expect_equal(res$pages, 3)
+    
+  } else
+    expect_equal(TRUE, TRUE)
 })
 
 

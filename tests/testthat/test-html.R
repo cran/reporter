@@ -265,11 +265,11 @@ test_that("html8: Page by works as expected.", {
   
   dat <- iris
   
-  
   tbl <- create_table(dat, borders = "all") %>%
     titles("Table 1.0", "My Nice Irises", "Another Title", 
            borders = "outside") %>%
-    page_by(Species, label = "Species: ", borders = "outside", align = "center") %>% 
+    page_by(Species, label = "Species: ", borders = "outside", 
+            align = "center") %>% 
     define(Sepal.Length, label = "Sepal Length", width = 1.5, align = "center") %>%
     define(Sepal.Width, label = "Sepal Width", width = 1.25, align = "centre")  %>%
     define(Species, visible = FALSE) %>% 
@@ -481,6 +481,10 @@ test_that("html14: Plot with page by on plot works as expected.", {
   fp <- file.path(base_path, "html/test14.html")
   
   
+  fmt <- value(condition(x == 4, "4 Cylinder"),
+               condition(x == 6, "6 Cylinder"),
+               condition(x == 8, "8 Cylinder"))
+  
   dat <- mtcars[order(mtcars$cyl), ]
   
   p <- ggplot(dat, aes(x=disp, y=mpg)) + geom_point()
@@ -494,7 +498,7 @@ test_that("html14: Plot with page by on plot works as expected.", {
     titles("Figure 1.0", "MTCARS Miles per Cylinder Plot", 
            borders = brdrs, 
            blank_row = "none") %>%
-    page_by(cyl, "Cylinders: ", borders = brdrs) %>% 
+    page_by(cyl, "Cylinders: ", borders = brdrs, format = fmt) %>% 
     footnotes("* Motor Trend, 1974", borders = brdrs) 
   
   rpt <- create_report(fp, output_type = "HTML", font = fnt, font_size = fsz) %>%
@@ -592,7 +596,7 @@ test_that("html17: 9 pt font cm works as expected.", {
   
 })
 
-test_that("html8: 11 pt font inches works as expected.", {
+test_that("html18: 11 pt font inches works as expected.", {
   
   
   fp <- file.path(base_path, "html/test18.html")
@@ -1493,6 +1497,44 @@ test_that("html43: Page by with wrap works as expected.", {
   expect_equal(length(res$column_widths[[1]]), 5)
   
   
+})
+
+test_that("html-44: Multi page table removes blank spaces.", {
+  
+  if (dev == TRUE) {
+    
+    
+    fp <- file.path(base_path, "html/test44.html")
+    
+    dat1 <- iris[1:10, ]
+    dat2 <- iris[11:20, ]
+    dat3 <- iris[21:30, ]
+    
+    
+    tbl1 <- create_table(dat1, borders = "none") %>%
+      titles("Table 1.0", "My Nice Irises1") 
+    
+    tbl2 <- create_table(dat2, borders = "none") %>%
+      titles("Table 1.0", "My Nice Irises2")
+    
+    tbl3 <- create_table(dat3, borders = "none") %>%
+      titles("Table 1.0", "My Nice Irises3")
+    
+    rpt <- create_report(fp, output_type = "HTML", font = fnt,
+                         font_size = 12, orientation = "landscape") %>%
+      set_margins(top = 1, bottom = 1) %>%
+      add_content(tbl1, blank_row = "none") |> 
+      add_content(tbl2, blank_row = "none") |> 
+      add_content(tbl3, blank_row = "none") 
+    
+    
+    res <- write_report(rpt)
+    
+    expect_equal(file.exists(fp), TRUE)
+    expect_equal(res$pages, 3)
+    
+  } else
+    expect_equal(TRUE, TRUE)
 })
 
 
