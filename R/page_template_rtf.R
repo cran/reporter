@@ -295,7 +295,14 @@ get_titles_rtf <- function(ttllst, content_width, rs, talgn = "center") {
       
       # Open device context
       pdf(NULL)
-      par(family = get_font_family(rs$font), ps = rs$font_size)
+      
+      # Set point size (ps) for strwidth to calculate string width
+      if (!is.null(ttls$font_size)) {
+        ttlfs <- ttls$font_size
+      } else {
+        ttlfs <- rs$font_size
+      }
+      par(family = get_font_family(rs$font), ps = ttlfs)
       
       
       al <- ""
@@ -627,7 +634,14 @@ get_footnotes_rtf <- function(ftnlst, content_width, rs, talgn = "center") {
       border_flag <- FALSE
       
       pdf(NULL)
-      par(family = get_font_family(rs$font), ps = rs$font_size)
+      
+      # Set point size (ps) for strwidth to calculate string width
+      if (!is.null(ftnts$font_size)) {
+        ftntfs <- ftnts$font_size
+      } else {
+        ftntfs <- rs$font_size
+      }
+      par(family = get_font_family(rs$font), ps = ftntfs)
       
       al <- ""
       # Get blank row above
@@ -703,10 +717,11 @@ get_footnotes_rtf <- function(ftnlst, content_width, rs, talgn = "center") {
                                 cols, ftnts$borders)
           
           # Not all cells have titles
-          if (i > length(ftnts$footnotes))
+          if (i > length(ftnts$footnotes)) {
             vl <- ""
-          else 
+          } else { 
             vl <- ftnts$footnotes[[i]]
+          }
           
           # Deal with column alignments
           if (cols == 1) {
@@ -1309,7 +1324,7 @@ get_cell_borders <- function(row, col, nrow, ncol, brdrs, flag = "", exclude = N
   
   # Deal with flag
   if (!is.na(flag)) {
-    if (flag %in% c("L", "B")) {
+    if (flag %in% c("L", "B", "A")) {
       
       if (col == 1 & any(brdrs %in% c("outside", "right", "all")))
         r <- "\\clbrdrr\\brdrs"

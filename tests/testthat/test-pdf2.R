@@ -1,7 +1,7 @@
 
 context("PDF2 Tests")
 
-base_path <- "c:/packages/reporter/tests/testthat"
+base_path <- paste0(getwd(),"/tests/testthat")
 data_dir <- base_path
 
 base_path <- tempdir()
@@ -2193,7 +2193,8 @@ test_that("pdf2-58: Glue feature works.", {
       spanning_header(1, 4, label = "My span{subsc('4')}") %>%
       define(mpg, label = "Mpg{subsc('3')}")
     
-    myvar <- "23"
+    #myvar <- "23"
+    assign("myvar", "23", envir = .GlobalEnv)
     
     rpt <- create_report(fp, output_type = "PDF", font = "Courier") %>%
       page_header(c("Left {supsc('2')}really long left ",
@@ -2202,7 +2203,7 @@ test_that("pdf2-58: Glue feature works.", {
       add_content(tbl) %>%
       page_footer(c("left1{supsc('5')}", "left2{supsc('6')}"), "", 
                   "right{supsc('7')}") %>%
-      titles("Table 1.0{supsc('1')}", "IRIS Data Frame{{myvar}}",
+      titles("Table 1.0{supsc('1')}", "IRIS Data Frame{myvar}",
              blank_row = "below") %>%
       footnotes("Here is a footnote{subsc('a')}", "And another{subsc('9')}")
     
@@ -3061,8 +3062,159 @@ test_that("pdf2-80: spanning header works on show_cols none and defined cols", {
   
 })
 
+test_that("pdf2-81: Plot outside border works as expected.", {
+  
+  if (dev) {
+    
+    library(ggplot2)
+    library(common)
+    
+    indata <- data.frame(
+      VAR = c("ARM", "ARM", "ARM", "ARM"),
+      CAT = c("ARM A", "ARM B", "ARM C", "ARM D"),
+      CNT = c(20, 21, 21, 23)
+    )
+    
+    common::labels(indata) <- setNames(
+      list("", "ARM", "Frequency"),
+      names(indata)
+    )
+    
+    plt <- ggplot(data = indata, aes(x = CAT, y = CNT)) +
+      geom_col(fill = "#0000A0") +
+      geom_text(aes(label = CNT), vjust = 1.5, colour = "white") +
+      labs(x = "Treatment Group", y = "Number of Subjects (n)")
+    
+    # Create temp file name
+    fp <- file.path(base_path, "pdf2/test81.pdf")
+    
+    page1 <- create_plot(plt, 4.5, 7, borders = "outside") |> 
+      titles("Figure 1.1", "Distribution of Subjects by Treatment Group", 
+             bold = TRUE, font_size = 11)
+    
+    
+    rpt <- create_report(fp, output_type = "PDF", font = "Arial") |> 
+      set_margins(top = 1, bottom = 1) |> 
+      page_header("Sponsor: Company", "Study: ABC") |> 
+      add_content(page1) |> 
+      footnotes("Program: DM_Figure.R") |> 
+      page_footer(paste0("Date Produced: ", fapply(Sys.time(), "%d%b%y %H:%M")), 
+                  right = "Page [pg] of [tpg]")
+    
+    
+    # Write the report
+    res <- write_report(rpt)
+    
+    
+    expect_equal(file.exists(fp), TRUE)
+    expect_equal(res$pages, 1)
+  } else {
+    
+    expect_equal(TRUE, TRUE) 
+  }
+  
+})
 
+test_that("pdf2-82: Table with blank_before as expected.", {
+  
+  if (dev == TRUE) {
+    
+    
+    fp <- file.path(base_path, "pdf2/test82.pdf")
+    
+    
+    # Setup
+    arm <- c(rep("A", 5), rep("B", 5))
+    subjid <- 100:109
+    name <- c("Quintana, Gabriel", "Allison, Blas", "Minniear, Presley",
+              "al-Kazemi, Najwa \nand more and more", "Schaffer, Ashley", "Laner, Tahma",
+              "Perry, Sean", "Crews, Deshawn Joseph", "Person, Ladon",
+              "Smith, Shaileigh")
+    sex <- c("M", "F", "F", "M", "M", "F", "M", "F", "F", "M")
+    age <- c(41, 53, 43, 39, 47, 52, 21, 38, 62, 26)
+    
+    
+    # Create data frame
+    df1 <- data.frame(arm, subjid, name, sex, age, stringsAsFactors = FALSE)
+    
+    
+    tbl1 <- create_table(df1, first_row_blank = FALSE, borders = "all") %>%
+      define(subjid, label = "Subject ID for a patient", n = 10, align = "left",
+             width = 1) %>%
+      define(name, label = "Subject Name", width = 1) %>%
+      define(sex, label = "Sex", n = 10, align = "center") %>%
+      define(age, label = "Age", n = 10) %>%
+      define(arm, label = "Arm",
+             blank_before = TRUE,
+             dedupe = TRUE) %>% 
+      titles("Table 1.0", align = "center", borders = "all") %>%
+      footnotes("Here", borders = "all") 
+    
+    
+    rpt <- create_report(fp, output_type = "PDF", font = "Arial",
+                         font_size = fsz) %>%
+      add_content(tbl1)
+    
+    
+    res <- write_report(rpt)
+    
+    expect_equal(file.exists(fp), TRUE)
+    
+  } else 
+    expect_equal(TRUE, TRUE)
+  
+  
+  
+})
 
+test_that("pdf2-83: Three level stub and indentation work as expected.", {
+  
+  if (dev == TRUE) {
+    fp <- file.path(base_path, "pdf2/test83.pdf")
+    
+    
+    # Setup
+    cat <- c(rep("Kaplan-Meier estimates", 6), 
+             rep("Cox PH estimates and some more really long stuff", 6))
+    grp <- c("25th percentile", "25th percentile", 
+             "median (weeks)", "median (weeks)",
+             "75th percentile", "75th percentile",
+             "25th percentile", "25th percentile", 
+             "median (weeks)", "median (weeks)",
+             "75th percentile", "75th percentile")
+    ci <- c(NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval")
+    values <- c(41, 53, 43, 39, 47, 52, 38, 25, 37, 23, 78, 21)
+    
+    # Create data frame
+    df <- data.frame(cat, grp, ci, values, stringsAsFactors = FALSE)
+    
+    tbl1 <- create_table(df) %>%
+      stub(c(cat, grp, ci), "Estimates", width = 1.5) %>% 
+      define(cat, label_row = TRUE, blank_after = TRUE, indent = 0.15) %>%
+      define(grp, indent = .25) %>%
+      define(ci, indent = .5) %>%
+      define(values, label = "Values")
+    
+    rpt <- create_report(fp, output_type = "PDF", font = fnt,
+                         font_size = fsz) %>%
+      titles("Table 3.0", "Analysis of Time to Initial PSGA Success in Weeks") %>% 
+      page_header("Sponsor", "Study") %>% 
+      add_content(tbl1) %>% 
+      page_footer("Time", "Confidential", "Page")
+    
+    
+    res <- write_report(rpt)
+    
+    expect_equal(file.exists(fp), TRUE)
+  } else {
+    expect_true(TRUE)
+  }
+})
 
 # # User Tests --------------------------------------------------------------
 
@@ -3170,7 +3322,7 @@ test_that("pdf2-user1: demo table works.", {
     # Define table
     tbl <- create_table(demo, first_row_blank = TRUE) %>%
       column_defaults(from = "ARM A", to = "ARM D", width = 1.25) %>%
-      define(var, blank_after = TRUE, dedupe = TRUE,
+      define(var, blank_after = TRUE, dedupe = TRUE, blank_before = TRUE,
              format = block_fmt, label = "") %>%
       define(label, label = "") %>%
       define(`ARM A`, align = "center", label = "Placebo", n = 36) %>%

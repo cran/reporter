@@ -39,10 +39,6 @@
 #' The report family of functions are pipe-friendly.  After creating the 
 #' report, you may pipe the object to any of the above functions to append
 #' additional options.
-#' 
-#' Note that PDF output currently only supports a fixed-width style report.
-#' A variable-width report with a choice of fonts will be available in future
-#' versions of the \strong{reporter} package.
 #'
 #' @param file_path The output path of the desired report. Either a full path or
 #' a relative path is acceptable.  This parameter is not required to create the
@@ -75,7 +71,7 @@
 #' used for the entire report.  Valid values are "Courier", "Arial", "Times",
 #' and "fixed".  The value of "fixed" will create a fixed-width, text style
 #' report in Courier font.  The \code{font} parameter only applies to 
-#' RTF, HTML, PDF, and DOCX reports.  The default value is "fixed".
+#' RTF, HTML, PDF, and DOCX reports.  The default value is "Courier".
 #' @param font_size The size of the font to use on the report. The \code{font_size}
 #' specified will be used for the entire report.  Valid values are 8, 9, 10, 11,
 #' and 12.  The \code{font_size} parameter only applies to RTF, PDF, HTML, and  
@@ -140,7 +136,7 @@
 create_report <- function(file_path = "", output_type = "TXT", 
                           orientation ="landscape", units = "inches",
                           paper_size = "letter", missing = "",
-                          font = "fixed", font_size = NULL) {
+                          font = "Courier", font_size = NULL) {
   # font = "fixed"
   # font_size = NULL
 
@@ -1459,12 +1455,16 @@ titles <- function(x, ..., align = "center", blank_row = "below",
 #' @param italics A TRUE or FALSE value indicating whether the footnote 
 #' text shoud be in italics font.  If TRUE, the entire footnote will be 
 #' in italics.
-#' @param columns The number of columns for the foonote block. Valid values
+#' @param columns The number of columns for the footnote block. Valid values
 #' are 1, 2, and 3.  Default is 1.  If this parameter is set to 2, the footnote
 #' block will be split into two columns, each aligned to the outside.  If 
 #' this parameter is set to 3, the title block will be split into 3 columns,
 #' with the outer columns aligned to the outside and the middle column
 #' aligned center.  Footnotes are assigned to cells from top left to bottom right.
+#' @param font_size The font size to use for the footnote block.  The font size
+#' of the report will be used by default.  Valid values are 8, 9, 10, 11, 12
+#' This parameter only applies to variable-width RTF, HTML, PDF, and DOCX 
+#' output types.
 #' @return The modified report.
 #' @family report
 #' @examples
@@ -1515,7 +1515,8 @@ titles <- function(x, ..., align = "center", blank_row = "below",
 #' @export
 footnotes <- function(x, ..., align = "left", blank_row = "above", 
                       borders = "none", valign = NULL, width = NULL, 
-                      footer = FALSE, italics = FALSE, columns = 1){
+                      footer = FALSE, italics = FALSE, columns = 1,
+                      font_size = NULL){
 
   # Create footnote structure
   ftn <- structure(list(), class = c("footnote_spec", "list"))
@@ -1543,6 +1544,14 @@ footnotes <- function(x, ..., align = "left", blank_row = "above",
                           "outside", "inside", "none")))
     stop(paste("Borders parameter invalid.  Valid values are", 
       "'top', 'bottom', 'left', 'right', 'outside', 'inside', 'all', or 'none'."))
+  
+  # Trap invalid font_size parameter
+  if (!is.null(font_size)) {
+    if (!font_size %in% 8:12) {
+      stop(paste0("Footnote font_size parameter invalid.  ", 
+                  "Valid values are 8, 9, 10, 11 and 12."))
+    }
+  }
   
   if (is.null(width)) {
     if (any(class(x) %in% c("report_spec"))) 
@@ -1592,6 +1601,7 @@ footnotes <- function(x, ..., align = "left", blank_row = "above",
   ftn$width <- width  
   ftn$footer <- footer
   ftn$italics <- italics
+  ftn$font_size <- font_size
   ftn$columns <- columns
 
   if (is.null(valign)) {
@@ -2181,8 +2191,11 @@ write_report <- function(x, file_path = NULL,
 
   if (nchar(x$file_path) > 0 & length(getExtension(x$file_path)) == 0) {
       x$modified_path <- paste0(x$file_path, ".", tolower(x$output_type))
-  } else 
+      x$path <- paste0(x$file_path, ".", tolower(x$output_type))
+  } else {
     x$modified_path <- x$file_path
+    x$path <- x$file_path
+  }
   
   #print(x$modified_path)
   
@@ -2357,7 +2370,13 @@ print.report_spec <- function(x, ..., verbose = FALSE){
     
     # Print key attributes
     cat("\n")
-    cat(paste0("- file_path: '", x$modified_path, "'\n"))
+    if (is.null(x$modified_path)) {
+      cat(paste0("- file_path: '", x$file_path, "'\n"))
+    } else if (x$modified_path == "") {
+      cat(paste0("- file_path: '", x$file_path, "'\n"))
+    } else {
+      cat(paste0("- file_path: '", x$modified_path, "'\n"))
+    }
     cat(paste0("- output_type: ", x$output_type, "\n"))
     cat(paste0("- units: ", x$units, "\n"))
     cat(paste0("- orientation: ", x$orientation, "\n"))

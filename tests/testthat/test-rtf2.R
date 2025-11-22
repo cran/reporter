@@ -1,7 +1,7 @@
 
 context("RTF2 Tests")
 
-base_path <- "c:/packages/reporter/tests/testthat"
+base_path <- paste0(getwd(),"/tests/testthat")
 data_dir <- base_path
 
 base_path <- tempdir()
@@ -3554,6 +3554,137 @@ test_that("rtf2-99: Multi page table removes blank spaces.", {
     expect_equal(TRUE, TRUE)
 })
 
+test_that("rtf2-100: Spanning header gap works as expected.", {
+  
+  if (dev == TRUE) {
+    
+    fp <- file.path(base_path, "rtf2/test100.rtf")
+    
+    dat <- mtcars[1:15, ]
+    
+    tbl <- create_table(dat, borders = c("outside")) %>%
+      spanning_header(cyl, disp, "Span 1", label_align = "left") %>%
+      spanning_header(hp, wt, "Span 2", underline = TRUE) %>%
+      spanning_header(qsec, vs, "Span 3", n = 10) %>%
+      spanning_header(cyl, hp, "Super Span", n = 11, level = 2) |> 
+      spanning_header(drat, gear, "Super Duper\nWrapped Span", n = 11, level = 2)
+    
+    rpt <- create_report(fp, output_type = "RTF", font = fnt,
+                         font_size = fsz, orientation = "landscape") %>%
+      set_margins(top = 1, bottom = 1) %>%
+      page_header("Left", c("Right1", "Right2", "Right3"), blank_row = "below") %>%
+      titles("Table 1.0", "My Nice Table") %>%
+      add_content(tbl) %>%
+      footnotes("My footnote 1", "My footnote 2") %>%
+      page_footer("Left1", "Center1", "Right1")
+    
+    res <- write_report(rpt)
+    res
+    res$column_widths
+    
+    expect_equal(file.exists(fp), TRUE)
+    expect_equal(res$pages, 1)
+    
+  } else {
+    expect_equal(TRUE, TRUE)
+  }
+})
+
+test_that("rtf2-101: Table with blank_before as expected.", {
+  
+  if (dev == TRUE) {
+    fp <- file.path(base_path, "rtf2/test101.rtf")
+    
+    
+    # Setup
+    arm <- c(rep("A", 5), rep("B", 5))
+    subjid <- 100:109
+    name <- c("Quintana, Gabriel", "Allison, Blas", "Minniear, Presley",
+              "al-Kazemi, Najwa \nand more and more", "Schaffer, Ashley", "Laner, Tahma",
+              "Perry, Sean", "Crews, Deshawn Joseph", "Person, Ladon",
+              "Smith, Shaileigh")
+    sex <- c("M", "F", "F", "M", "M", "F", "M", "F", "F", "M")
+    age <- c(41, 53, 43, 39, 47, 52, 21, 38, 62, 26)
+    
+    
+    # Create data frame
+    df <- data.frame(arm, subjid, name, sex, age, stringsAsFactors = FALSE)
+    
+    
+    tbl1 <- create_table(df, first_row_blank = FALSE) %>%
+      define(subjid, label = "Subject ID for a patient", n = 10, align = "left",
+             width = 1) %>%
+      define(name, label = "Subject Name", width = 1) %>%
+      define(sex, label = "Sex", n = 10, align = "center") %>%
+      define(age, label = "Age", n = 10) %>%
+      define(arm, label = "Arm",
+             blank_before = TRUE,
+             dedupe = TRUE)
+    
+    
+    rpt <- create_report(fp, output_type = "RTF", font = fnt,
+                         font_size = fsz) %>%
+      titles("Table 1.0", align = "center") %>%
+      
+      add_content(tbl1)
+    
+    
+    res <- write_report(rpt)
+    
+    expect_equal(file.exists(fp), TRUE)
+  } else {
+    expect_equal(TRUE, TRUE)
+  }
+})
+
+test_that("rtf2-102: Three level stub and indentation work as expected.", {
+  
+  if (dev == TRUE) {
+    fp <- file.path(base_path, "rtf2/test102.rtf")
+    
+    
+    # Setup
+    cat <- c(rep("Kaplan-Meier estimates", 6), 
+             rep("Cox PH estimates and some more really long stuff", 6))
+    grp <- c("25th percentile", "25th percentile", 
+             "median (weeks)", "median (weeks)",
+             "75th percentile", "75th percentile",
+             "25th percentile", "25th percentile", 
+             "median (weeks)", "median (weeks)",
+             "75th percentile", "75th percentile")
+    ci <- c(NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval")
+    values <- c(41, 53, 43, 39, 47, 52, 38, 25, 37, 23, 78, 21)
+    
+    # Create data frame
+    df <- data.frame(cat, grp, ci, values, stringsAsFactors = FALSE)
+    
+    tbl1 <- create_table(df) %>%
+      stub(c(cat, grp, ci), "Estimates", width = 1.5) %>% 
+      define(cat, label_row = TRUE, blank_after = TRUE, indent = 0.15) %>%
+      define(grp, indent = .25) %>%
+      define(ci, indent = .5) %>%
+      define(values, label = "Values")
+    
+    rpt <- create_report(fp, output_type = "RTF", font = fnt,
+                         font_size = fsz) %>%
+      titles("Table 3.0", "Analysis of Time to Initial PSGA Success in Weeks") %>% 
+      page_header("Sponsor", "Study") %>% 
+      add_content(tbl1) %>% 
+      page_footer("Time", "Confidential", "Page")
+    
+    
+    res <- write_report(rpt)
+    
+    expect_equal(file.exists(fp), TRUE)
+  } else {
+    expect_equal(TRUE, TRUE)
+  }
+})
 
 # User Tests --------------------------------------------------------------
 
@@ -3802,7 +3933,7 @@ test_that("user2: demo table with stub works.", {
     tbl <- create_table(demo, first_row_blank = TRUE, borders = "all") %>%
       stub(c("var", "label"), width = 1.5) %>%
       column_defaults(width = 1) %>%
-      define(var, blank_after = TRUE,
+      define(var, blank_after = TRUE, blank_before = TRUE,
              format = block_fmt, label = "", label_row = TRUE) %>%
       define(label, label = "", indent = .25) %>%
       define(`ARM A`, align = "center", label = "Placebo", n = 36) %>%

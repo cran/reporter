@@ -2,8 +2,7 @@
 context("PDF Tests")
 
 
-base_path <- "/home/dbosak01/packages/reporter/tests/testthat"
-base_path <- "c:/packages/reporter/tests/testthat"
+base_path <- paste0(getwd(),"/tests/testthat")
 
 base_path <- tempdir()
 
@@ -28,7 +27,7 @@ test_that("pdf1: Simplest table works as expected.", {
 
   fp <- file.path(base_path, "pdf/test1.pdf")
 
-  rpt <- create_report(fp, output_type = "PDF") %>%
+  rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
     add_content(create_table(mtcars[1:10, ]), align = "left")
 
   res <- write_report(rpt)
@@ -52,7 +51,7 @@ test_that("pdf2: Simplest table with title works as expected.", {
     tbl <- create_table(mtcars[1:10, ]) %>%
       define(vs, visible = FALSE)
 
-    rpt <- create_report(fp, output_type = "PDF") %>%
+    rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
       options_fixed(font_size = 10) %>%
       titles("MTCARS Data Frame", align = "left") %>%
       add_content(tbl)
@@ -100,7 +99,7 @@ test_that("pdf3: Table with break between sections works as expected.", {
            align = "right")
 
 
-  rpt <- create_report(fp, output_type = "PDF") %>%
+  rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
     options_fixed(font_size = 10) %>%
     page_header(left = "Experis", right = c("Study ABC", "Status: Closed")) %>%
     titles("Table 1.0", "Analysis Data Subject Listing",
@@ -129,7 +128,7 @@ test_that("pdf4: Table that spans multiple pages breaks as expected.", {
   
     fp <- file.path(base_path, "pdf/test4.pdf")
 
-    rpt <- create_report(fp, output_type = "PDF") %>%
+    rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
       page_header("left", "right") %>%
       titles("IRIS Data Frame") %>%
       add_content(create_table(iris)) %>%
@@ -177,7 +176,7 @@ test_that("pdf5: Table with long cell and label values wraps as expected.", {
              dedupe = TRUE)
 
 
-    rpt <- create_report(fp, output_type = "PDF") %>%
+    rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
       titles("Table 1.0", align = "center") %>%
 
       add_content(tbl1)
@@ -215,7 +214,7 @@ test_that("pdf6: Table with spanning headers works as expected.", {
       define(vehicle, label = "Vehicle") %>%
       define(mpg, format = "%.1f")
 
-    rpt <- create_report(fp, output_type = "PDF") %>%
+    rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
       add_content(tbl) %>%
       titles("Table 1.0", "MTCARS Subset Test")
 
@@ -240,7 +239,7 @@ test_that("pdf7: Simplest PDF report with 1 in margins works as expected.", {
       column_defaults(width = .5) %>%
       define(vs, visible = FALSE)
 
-    rpt <- create_report(fp, output_type = "PDF") %>%
+    rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
       page_header("Client", "Study") %>%
       titles("MTCARS Data Frame") %>%
       set_margins(top = 1, bottom = 1) %>%
@@ -303,7 +302,7 @@ test_that("pdf8: Two page PDF report works as expected.", {
       define(arm, format = afmt, width = 2, align = "right")
 
 
-    rpt <- create_report(fp, output_type = "PDF") %>%
+    rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
       options_fixed(font_size = 10) %>%
       set_margins(top = 1, bottom = 1) %>%
       page_header(left = "Experis", right = c("Study ABC", "Status: Closed")) %>%
@@ -343,7 +342,7 @@ test_that("pdf9: Simplest PDF Plot works as expected.", {
     plt <- create_plot(p, height = 4, width = 8)
 
 
-    rpt <- create_report(fp, output_type = "PDF") %>%
+    rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
       page_header("Client", "Study: XYZ") %>%
       titles("Figure 1.0", "MTCARS Miles per Cylinder Plot") %>%
       set_margins(top = 1, bottom = 1) %>%
@@ -376,7 +375,7 @@ test_that("pdf10: PDF Table with Plot works as expected.", {
     tbl <- create_table(mtcars[1:10, ])
 
 
-    rpt <- create_report(fp, output_type = "PDF") %>%
+    rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
       page_header("Client", "Study: XYZ") %>%
       titles("Figure 1.0", "MTCARS Miles per Cylinder Plot") %>%
       set_margins(top = 1, bottom = 1) %>%
@@ -411,7 +410,7 @@ test_that("pdf11: PDF Table with Plot on same page works as expected.", {
   tbl <- create_table(mtcars[1:3, ])
 
 
-  rpt <- create_report(fp, output_type = "PDF") %>%
+  rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
     page_header("Client", "Study: XYZ") %>%
     titles("Figure 1.0", "MTCARS Miles per Cylinder Plot", blank_row = "none") %>%
     set_margins(top = 1, bottom = 1) %>%
@@ -440,7 +439,8 @@ test_that("pdf12: Table and Text output works as expected.", {
   tbl1 <- mtcars[1:10, ]
   tbl2 <- mtcars[11:20, ]
 
-  rpt <- create_report(fp, orientation = "portrait", output_type = "PDF") %>%
+  rpt <- create_report(fp, orientation = "portrait", output_type = "PDF", 
+                       font = "fixed") %>%
     titles("Report 5.0", "Table and Text Report") %>%
     page_header(left = "Client: ABC", right = "Study: 123") %>%
     add_content(create_table(tbl1), page_break = FALSE) %>%
@@ -469,7 +469,8 @@ test_that("pdf13: Very Long text output works as expected.", {
 
     l <- paste(rep(cnt, 1000), collapse = "\n\n")
 
-    rpt <- create_report(fp, orientation = "portrait", output_type = "PDF") %>%
+    rpt <- create_report(fp, orientation = "portrait", output_type = "PDF", 
+                         font = "fixed") %>%
       titles("Report 6.0", "Very long Text Report") %>%
       page_header(left = "Client: ABC", right = "Study: 123") %>%
       add_content(create_text(l)) %>%
@@ -493,7 +494,8 @@ test_that("pdf14: Simplest portrait table works as expected.", {
 
     fp <- file.path(base_path, "pdf/test14.pdf")
 
-    rpt <- create_report(fp, output_type = "PDF", orientation = "portrait") %>%
+    rpt <- create_report(fp, output_type = "PDF", orientation = "portrait", 
+                         font = "fixed") %>%
       page_header("left", "right") %>%
       titles("Table 1.0", "MTCARS Data Frame") %>%
       add_content(create_table(mtcars)) %>%
@@ -515,7 +517,8 @@ test_that("pdf15: Simplest landscape table works as expected.", {
 
     fp <- file.path(base_path, "pdf/test15.pdf")
 
-    rpt <- create_report(fp, output_type = "PDF", orientation = "landscape") %>%
+    rpt <- create_report(fp, output_type = "PDF", orientation = "landscape", 
+                         font = "fixed") %>%
       page_header("left", "right") %>%
       titles("Table 1.0", "MTCARS Data Frame") %>%
       add_content(create_table(mtcars)) %>%
@@ -539,7 +542,8 @@ test_that("pdf16: 10 pt report with units in cm works as expected.", {
     fp <- file.path(base_path, "pdf/test16.pdf")
 
 
-    rpt <- create_report(fp, units = "cm", output_type = "PDF") %>%
+    rpt <- create_report(fp, units = "cm", output_type = "PDF", 
+                         font = "fixed") %>%
       page_header("Client: Experis", "Study: ABC") %>%
       titles("IRIS Data Frame") %>%
       page_footer("Time", "Confidential", "Page [pg] of [tpg]") %>%
@@ -566,7 +570,8 @@ test_that("pdf17: 12 pt report with units in cm works as expected.", {
     fp <- file.path(base_path, "pdf/test17.pdf")
 
 
-    rpt <- create_report(fp, units = "cm", output_type = "PDF") %>%
+    rpt <- create_report(fp, units = "cm", output_type = "PDF", 
+                         font = "fixed") %>%
       options_fixed(font_size = 12) %>%
       page_header("Client: Experis", "Study: ABC") %>%
       titles("IRIS Data Frame") %>%
@@ -606,7 +611,7 @@ test_that("pdf18: Plot with page by on report works as expected.", {
     plt <- create_plot(p, height = 4, width = 8)
 
 
-    rpt <- create_report(fp, output_type = "PDF") %>%
+    rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
       page_header("Client", "Study: XYZ") %>%
       titles("Figure 1.0", "MTCARS Miles per Cylinder Plot", blank_row = "none") %>%
       set_margins(top = 1, bottom = 1) %>%
@@ -657,7 +662,7 @@ test_that("pdf19: Plot with page by on plot works as expected.", {
               blank_row = "none", format = fmt) %>%
       footnotes("* Motor Trend, 1974")
 
-    rpt <- create_report(fp, output_type = "PDF") %>%
+    rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
       page_header("Sponsor", "Study: cars") %>%
       set_margins(top = 1, bottom = 1) %>%
       add_content(plt) %>%
@@ -687,7 +692,8 @@ test_that("test21: 8 pt report with units in inches works as expected.", {
 
     tbl <- create_table(iris)
 
-    rpt <- create_report(fp, units = "inches", output_type = "PDF") %>%
+    rpt <- create_report(fp, units = "inches", output_type = "PDF", 
+                         font = "fixed") %>%
       page_header("Client: Experis", "Study: ABC") %>%
       titles("IRIS Data Frame") %>%
       page_footer("Time", "Confidential", "Page [pg] of [tpg]") %>%
@@ -713,7 +719,8 @@ test_that("test22: 8 pt report with units in cm works as expected.", {
     fp <- file.path(base_path, "pdf/test22.pdf")
 
 
-    rpt <- create_report(fp, units = "cm", output_type = "PDF") %>%
+    rpt <- create_report(fp, units = "cm", output_type = "PDF", 
+                         font = "fixed") %>%
       page_header("Client: Experis", "Study: ABC") %>%
       titles("IRIS Data Frame") %>%
       page_footer("Time", "Confidential", "Page [pg] of [tpg]") %>%
@@ -751,7 +758,7 @@ test_that("pdf23: PDF Table with Plot and borders works as expected.", {
     tbl <- create_table(mtcars[1:10, ])
 
 
-    rpt <- create_report(fp, output_type = "PDF") %>%
+    rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
       page_header("Client", "Study: XYZ") %>%
       titles("Figure 1.0", "MTCARS Miles per Cylinder Plot", borders = "all") %>%
       set_margins(top = 1, bottom = 1) %>%
@@ -794,7 +801,7 @@ test_that("pdf24: PDF Table with Plot and borders on content works as expected."
       footnotes("My table footnotes", borders = "all", align = "right")
 
 
-    rpt <- create_report(fp, output_type = "PDF") %>%
+    rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
       page_header("Client", "Study: XYZ") %>%
       set_margins(top = 1, bottom = 1) %>%
       add_content(tbl) %>%
@@ -828,7 +835,7 @@ test_that("pdf25: PDF Table with custom options works as expected.", {
     footnotes("My table footnotes", borders = "all", align = "right")
   
   
-  rpt <- create_report(fp) %>%
+  rpt <- create_report(fp, font = "fixed") %>%
     page_header("Client", "Study: XYZ") %>%
     set_margins(top = 1, bottom = 1) %>%
     add_content(tbl) %>%
@@ -856,7 +863,7 @@ test_that("pdf26: Table Borders that spans multiple pages work as expected.", {
   
   fp <- file.path(base_path, "pdf/test26.pdf")
   
-  rpt <- create_report(fp, output_type = "PDF") %>%
+  rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
     titles("IRIS Data Frame") %>%
     add_content(create_table(iris, borders = "all")) %>% 
     footnotes("Here is a footnote")
@@ -885,7 +892,7 @@ test_that("pdf27: Table Borders with ttls/fnts on table works as expected.", {
            blank_row = "below") %>% 
     footnotes("Here is a footnote", "And another")
   
-  rpt <- create_report(fp, output_type = "PDF") %>%
+  rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
     page_header("Left", "Right") %>% 
     add_content(tbl) %>% 
     page_footer("left", "", "right")
@@ -909,7 +916,7 @@ test_that("pdf28: Table Borders with ttls/fnts on report works as expected.", {
   
   tbl <- create_table(iris, borders = "all") 
   
-  rpt <- create_report(fp, output_type = "PDF") %>%
+  rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
     page_header("Left", "Right") %>% 
     add_content(tbl) %>% 
     page_footer("left", "", "right") %>% 
@@ -938,7 +945,7 @@ test_that("pdf29: 9 pt font inches works as expected.", {
   fp <- file.path(base_path, "pdf/test29.pdf")
   
   rpt <- create_report(fp, output_type = "PDF", font_size = 9, 
-                       orientation = "portrait") %>%
+                       orientation = "portrait", font = "fixed") %>%
     page_header("left", "right") %>%
     titles("IRIS Data Frame") %>%
     add_content(create_table(iris)) %>%
@@ -964,7 +971,7 @@ test_that("pdf30: 9 pt font cm works as expected.", {
   fp <- file.path(base_path, "pdf/test30.pdf")
   
   rpt <- create_report(fp, output_type = "PDF", font_size = 9, 
-                       orientation = "portrait") %>%
+                       orientation = "portrait", font = "fixed") %>%
     page_header("left", "right") %>%
     titles("IRIS Data Frame") %>%
     add_content(create_table(iris)) %>%
@@ -990,7 +997,7 @@ test_that("pdf31: 11 pt font inches works as expected.", {
   fp <- file.path(base_path, "pdf/test31.pdf")
   
   rpt <- create_report(fp, output_type = "PDF", font_size = 11, 
-                       orientation = "portrait") %>%
+                       orientation = "portrait", font = "fixed") %>%
     page_header("left", "right") %>%
     titles("IRIS Data Frame") %>%
     add_content(create_table(iris)) %>%
@@ -1016,7 +1023,7 @@ test_that("pdf32: 11 pt font cm works as expected.", {
   fp <- file.path(base_path, "pdf/test32.pdf")
   
   rpt <- create_report(fp, output_type = "PDF", font_size = 11, 
-                       orientation = "portrait") %>%
+                       orientation = "portrait", font = "fixed") %>%
     page_header("left", "right") %>%
     titles("IRIS Data Frame") %>%
     add_content(create_table(iris)) %>%
@@ -1081,7 +1088,7 @@ test_that("pdf34: Blank after on invisible column.", {
   tbl <- create_table(iris, borders = "all") %>%
     define(Species, blank_after = TRUE, visible = FALSE)
   
-  rpt <- create_report(fp, output_type = "PDF") %>%
+  rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
     page_header("Left", "Right") %>%
     add_content(tbl) %>%
     page_footer("left", "", "right") %>%
@@ -1103,7 +1110,7 @@ test_that("pdf35: Page header width works as expected.", {
   tbl <- create_table(iris[1:10, ], borders = "all") %>%
     define(Species, blank_after = TRUE, visible = FALSE)
   
-  rpt <- create_report(fp, output_type = "PDF") %>%
+  rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
     page_header("Left here is some stuff and more stuff trying to get out in the middle", 
                 "Right", width = 8) %>%
     add_content(tbl) %>%
@@ -1131,7 +1138,7 @@ test_that("pdf36: Custom page size works as expected.", {
   
   rpt <- create_report(fp, output_type = "PDF", 
                        paper_size = c(6.5, 7.5),
-                       orientation = "portrait") %>%
+                       orientation = "portrait", font = "fixed") %>%
     add_content(tbl) %>%
     page_header("left", "right") %>%
     page_footer("left", "", "right") %>%
@@ -1207,7 +1214,7 @@ test_that("pdf38: Title and footnotes Columns work as expected.", {
   ttl <- c("Title1", "Title2", "Title3")
   
   rpt <- create_report(fp, output_type = "PDF", 
-                       orientation = "portrait") %>%
+                       orientation = "portrait", font = "fixed") %>%
     add_content(tbl) %>%
     page_header("left", "right") %>%
     page_footer("left", "", "right") %>%
@@ -1221,4 +1228,106 @@ test_that("pdf38: Title and footnotes Columns work as expected.", {
   
   expect_equal(file.exists(fp), TRUE)
   
+})
+
+test_that("pdf39: Table with blank_before works as expected.", {
+  
+  if (dev == TRUE) {
+    
+    
+    fp <- file.path(base_path, "pdf/test39.pdf")
+    
+    # Setup
+    subjid <- 100:109
+    name <- c("Quintana, Gabriel", "Allison, Blas", "Minniear, Presley",
+              "al-Kazemi, Najwa", "Schaffer, Ashley", "Laner, Tahma",
+              "Perry, Sean", "Crews, Deshawn Joseph", "Person, Ladon",
+              "Smith, Shaileigh")
+    sex <- c("M", "F", "F", "M", "M", "F", "M", "F", "F", "M")
+    age <- c(41, 53, 43, 39, 47, 52, 21, 38, 62, 26)
+    arm <- c(rep("A", 5), rep("B", 5))
+    
+    # Create data frame
+    df <- data.frame(subjid, name, sex, age, arm, stringsAsFactors = FALSE)
+    
+    
+    tbl1 <- create_table(df, first_row_blank = FALSE) %>%
+      define(subjid, label = "Subject ID", align = "left") %>%
+      define(name, label = "Subject Name") %>%
+      define(sex, label = "Sex") %>%
+      define(age, label = "Age") %>%
+      define(arm, label = "Arm",
+             blank_before = TRUE,
+             dedupe = TRUE,
+             align = "right")
+    
+    
+    rpt <- create_report(fp, output_type = "PDF", font = "fixed") %>%
+      options_fixed(font_size = 10) %>%
+      page_header(left = "Experis", right = c("Study ABC", "Status: Closed")) %>%
+      titles("Table 1.0", "Analysis Data Subject Listing",
+             "Safety Population", align = "center") %>%
+      footnotes("Program Name: table1_0.R") %>%
+      page_footer(left = "Time", center = "Confidential",
+                  right = "Page [pg] of [tpg]") %>%
+      add_content(tbl1)
+    
+    
+    res <- write_report(rpt)
+    
+    expect_equal(file.exists(fp), TRUE)
+    
+    
+  } else {
+    expect_equal(TRUE, TRUE)
+  }
+})
+
+test_that("pdf40: Three level stub and indentation work as expected.", {
+  
+  if (dev == TRUE) {
+    fp <- file.path(base_path, "pdf/test40.pdf")
+    
+    
+    # Setup
+    cat <- c(rep("Kaplan-Meier estimates", 6), 
+             rep("Cox PH estimates and some more really long stuff", 6))
+    grp <- c("25th percentile", "25th percentile", 
+             "median (weeks)", "median (weeks)",
+             "75th percentile", "75th percentile",
+             "25th percentile", "25th percentile", 
+             "median (weeks)", "median (weeks)",
+             "75th percentile", "75th percentile")
+    ci <- c(NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval")
+    values <- c(41, 53, 43, 39, 47, 52, 38, 25, 37, 23, 78, 21)
+    
+    # Create data frame
+    df <- data.frame(cat, grp, ci, values, stringsAsFactors = FALSE)
+    
+    tbl1 <- create_table(df) %>%
+      stub(c(cat, grp, ci), "Estimates", width = 1.5) %>% 
+      define(cat, label_row = TRUE, blank_after = TRUE, indent = 0.15) %>%
+      define(grp, indent = .25) %>%
+      define(ci, indent = .5) %>%
+      define(values, label = "Values")
+    
+    rpt <- create_report(fp, output_type = "PDF", font = "fixed",
+                         font_size = 10) %>%
+      titles("Table 3.0", "Analysis of Time to Initial PSGA Success in Weeks") %>% 
+      page_header("Sponsor", "Study") %>% 
+      add_content(tbl1) %>% 
+      page_footer("Time", "Confidential", "Page")
+    
+    
+    res <- write_report(rpt)
+    
+    expect_equal(file.exists(fp), TRUE)
+  } else {
+    expect_equal(TRUE, TRUE)
+  }
 })

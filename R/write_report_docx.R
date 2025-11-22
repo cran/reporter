@@ -151,6 +151,7 @@ paginate_content_docx <- function(rs, ls) {
   last_page_lines <- 0
   table_widths <- list()
   imgCnt <- 0
+  imgPaths <- c()
   
   hrf <- has_bottom_footnotes(rs)
   
@@ -214,6 +215,7 @@ paginate_content_docx <- function(rs, ls) {
         lns[[length(lns) + 1]] <- res$lines[[j]]
         imgs[[length(imgs) + 1]] <- res$images[[j]]
         imgCnt <- imgCnt + 1
+        imgPaths[[length(imgPaths) + 1]] <- res$images[[j]]
       }
     } else {
       
@@ -282,7 +284,8 @@ paginate_content_docx <- function(rs, ls) {
   
   
   # Can return something else if needed here
-  ret <- list(widths = table_widths, pages = ls, imageCount = imgCnt )
+  ret <- list(widths = table_widths, pages = ls, imageCount = imgCnt, 
+              imagePaths = imgPaths)
   
   return(ret)
   
@@ -307,8 +310,10 @@ write_content_docx <- function(rs, hdr, body, pt) {
   page_open <- FALSE
   imgCnt <- 0
   
+  
+  
   # Create new document in temp location
-  tf <- create_new_docx(rs$font, rs$font_size, body$imageCount)
+  tf <- create_new_docx(rs$font, rs$font_size, body$imageCount, body$imagePaths)
   
   # Write out header
   create_header(tf, rs$page_template$page_header$docx)
@@ -332,8 +337,11 @@ write_content_docx <- function(rs, hdr, body, pt) {
     if (length(cont$images) > 0) {
       for (im in cont$images) { 
         imgCnt <- imgCnt + 1
-        
-        ifp <- file.path(tf, paste0("word/media/image", imgCnt, ".jpeg"))
+        ext <- tools::file_ext(im)
+        if (ext == "jpg") {
+          ext <- "jpeg"
+        }
+        ifp <- file.path(tf, paste0("word/media/image", imgCnt, ".", ext))
         file.copy(im, ifp)
       
       }
@@ -683,6 +691,10 @@ page_setup_docx <- function(rs) {
   # Include all the rows associated with the page template
   rs$page_template_header_count <- sum(pt$page_header$lines, pt$titles$lines,
                                        pt$title_hdr$lines, pt$page_by$lines)
+  
+  # DOCX would still have one blank row on top even no page headers
+  rs$page_template_header_count <- max(c(1, rs$page_template_header_count))
+  
   if (debug)
     print(paste("Page Template Header Count:", rs$page_template_header_count))
 

@@ -1,7 +1,7 @@
 
 context("DOCX Tests")
 
-base_path <- "c:/packages/reporter/tests/testthat"
+base_path <- paste0(getwd(),"/tests/testthat")
 data_dir <- base_path
 
 base_path <- tempdir()
@@ -696,7 +696,7 @@ test_that("docx19: 11 pt font cm works as expected.", {
 })
 
 
-test_that("docx20:  Image file works as expected.", {
+test_that("docx20:  JPG Image file works as expected.", {
 
   if (dev == TRUE) {
 
@@ -1989,6 +1989,234 @@ test_that("docx-56: Multi page table removes blank spaces.", {
     expect_equal(TRUE, TRUE)
 })
 
+
+# No errors, but Word converts the EMG to JPG automatically.
+# Even if you just insert in manually.
+test_that("docx-57:  EMF Image file works as expected.", {
+  
+  if (dev == TRUE) {
+    
+    fp <- file.path(base_path, "docx/test57.docx")
+    
+    pltpath <- file.path(base_path, "docx/example10.emf")
+    
+    plt <- create_plot(pltpath, height = 4, width = 8)
+    
+    
+    rpt <- create_report(fp, output_type = "DOCX", font = "Arial") %>%
+      page_header("Client", "Study: XYZ") %>%
+      titles("Figure 1.0", "MTCARS Miles per Cylinder Plot") %>%
+      set_margins(top = 1, bottom = 1) %>%
+      add_content(plt, align = "center") %>%
+      footnotes("* Motor Trend, 1974") %>%
+      page_footer("Time", "Confidential", "Page [pg] of [tpg]")
+    
+    
+    res <- write_report(rpt)
+    
+    #print(res)
+    
+    expect_equal(file.exists(fp), TRUE)
+    expect_equal(res$pages, 1)
+    
+  } else
+    expect_equal(TRUE, TRUE)
+  
+  
+})
+
+test_that("docx-58: Spanning header gap works as expected.", {
+  
+  if (dev == TRUE) {
+    fp <- file.path(base_path, "docx/test58.docx")
+    
+    dat <- mtcars[1:15, ]
+    
+    tbl <- create_table(dat, borders = c("outside")) %>%
+      spanning_header(cyl, disp, "Span 1", label_align = "left") %>%
+      spanning_header(hp, wt, "Span 2", underline = TRUE) %>%
+      spanning_header(qsec, vs, "Span 3", n = 10) %>%
+      spanning_header(cyl, hp, "Super Span", n = 11, level = 2) |> 
+      spanning_header(drat, gear, "Super Duper\nWrapped Span", n = 11, level = 2)
+    
+    rpt <- create_report(fp, output_type = "DOCX", font = fnt,
+                         font_size = fsz, orientation = "landscape") %>%
+      set_margins(top = 1, bottom = 1) %>%
+      page_header("Left", c("Right1", "Right2", "Right3"), blank_row = "below") %>%
+      titles("Table 1.0", "My Nice Table") %>%
+      add_content(tbl) %>%
+      footnotes("My footnote 1", "My footnote 2") %>%
+      page_footer("Left1", "Center1", "Right1")
+    
+    res <- write_report(rpt)
+    res
+    res$column_widths
+    
+    expect_equal(file.exists(fp), TRUE)
+    expect_equal(res$pages, 1)
+    
+  } else {
+    expect_true(TRUE)
+  }
+  
+})
+
+test_that("docx-59: Table with blank_before works as expected.", {
+  
+  
+  fp <- file.path(base_path, "docx/test59.docx")
+  
+  
+  # Setup
+  subjid <- 100:109
+  name <- c("Quintana, Gabriel", "Allison, Blas", "Minniear, Presley",
+            "al-Kazemi, Najwa", "Schaffer, Ashley", "Laner, Tahma",
+            "Perry, Sean", "Crews, Deshawn Joseph", "Person, Ladon here is some more",
+            "Smith, Shaileigh and \nmore and more and even more and more and more")
+  sex <- c("M", "F", "F", "M", "M", "F", "M", "F", "F", "M")
+  age <- c(41, 53, 43, 39, 47, 52, 21, 38, 62, 26)
+  arm <- c(rep("A", 5), rep("B", 5))
+  
+  # Create data frame
+  df <- data.frame(subjid, name, sex, age, arm)
+  
+  
+  tbl1 <- create_table(df, first_row_blank = FALSE, borders = "all") %>%
+    define(subjid, label = "Subject ID", align = "left", width = 1) %>%
+    define(name, label = "Subject Name", width = 1) %>%
+    define(sex, label = "Sex") %>%
+    define(age, label = "Age") %>%
+    define(arm, label = "Arm",
+           blank_before = TRUE,
+           dedupe = TRUE,
+           align = "right") #%>%
+  # spanning_header(sex, arm, label = "Here is a spanning header")
+  
+  
+  rpt <- create_report(fp, output_type = "DOCX", font = fnt, font_size = fsz) %>%
+    page_header(left = "Experis", right = c("Study ABC", "Status: Closed")) %>%
+    # options_fixed(line_count = 46) %>%
+    titles("Table 1.0", "Analysis Data Subject Listing\n And more stuff",
+           "Safety Population", align = "center", bold = TRUE) %>%
+    footnotes("Program Name: table1_0.R",
+              "Here is a big long footnote that is going to wrap\n at least once") %>%
+    page_footer(left = "Time", center = "Confidential",
+                right = "Page [pg] of [tpg]") %>%
+    add_content(tbl1)
+  
+  
+  res <- write_report(rpt)
+  res
+  expect_equal(file.exists(fp), TRUE)
+  
+  
+})
+
+test_that("docx-60: Three level stub and indentation work as expected.", {
+  
+  if (dev == TRUE) {
+    fp <- file.path(base_path, "docx/test60.docx")
+    
+    
+    # Setup
+    cat <- c(rep("Kaplan-Meier estimates", 6), 
+             rep("Cox PH estimates and some more really long stuff", 6))
+    grp <- c("25th percentile", "25th percentile", 
+             "median (weeks)", "median (weeks)",
+             "75th percentile", "75th percentile",
+             "25th percentile", "25th percentile", 
+             "median (weeks)", "median (weeks)",
+             "75th percentile", "75th percentile")
+    ci <- c(NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval",
+            NA, "95% confidence interval")
+    values <- c(41, 53, 43, 39, 47, 52, 38, 25, 37, 23, 78, 21)
+    
+    # Create data frame
+    df <- data.frame(cat, grp, ci, values, stringsAsFactors = FALSE)
+    
+    tbl1 <- create_table(df) %>%
+      stub(c(cat, grp, ci), "Estimates", width = 1.5) %>% 
+      define(cat, label_row = TRUE, blank_after = TRUE, indent = 0.15) %>%
+      define(grp, indent = .25) %>%
+      define(ci, indent = .5) %>%
+      define(values, label = "Values")
+    
+    rpt <- create_report(fp, output_type = "DOCX", font = fnt,
+                         font_size = fsz) %>%
+      titles("Table 3.0", "Analysis of Time to Initial PSGA Success in Weeks") %>% 
+      page_header("Sponsor", "Study") %>% 
+      add_content(tbl1) %>% 
+      page_footer("Time", "Confidential", "Page")
+    
+    
+    res <- write_report(rpt)
+    
+    expect_equal(file.exists(fp), TRUE)
+  } else {
+    expect_equal(TRUE, TRUE)
+  }
+})
+
+test_that("docx-61: Table with blank_before works as expected.", {
+  
+  if (dev) {
+  fp <- file.path(base_path, "docx/test61.docx")
+  
+  
+  # Setup
+  subjid <- 100:109
+  name <- c("Quintana, Gabriel", "Allison, Blas", "Minniear, Presley",
+            "al-Kazemi, Najwa", "Schaffer, Ashley", "Laner, Tahma",
+            "Perry, Sean", "Crews, Deshawn Joseph", "Person, Ladon here is some more",
+            "Smith, Shaileigh and \nmore and more and even more and more and more")
+  sex <- c("M", "F", "F", "M", "M", "F", "M", "F", "F", "M")
+  age <- c(41, 53, 43, 39, 47, 52, 21, 38, 62, 26)
+  arm <- c(rep("A", 5), rep("B", 5))
+  
+  # Create data frame
+  df <- data.frame(subjid, name, sex, age, arm)
+  
+  
+  tbl1 <- create_table(df, first_row_blank = FALSE, borders = "all") %>%
+    define(subjid, label = "Subject ID", align = "left", width = 5) %>%
+    define(name, label = "Subject Name", width = 1) %>%
+    define(sex, label = "Sex") %>%
+    define(age, label = "Age") %>%
+    define(arm, label = "Arm",
+           blank_before = TRUE,
+           dedupe = TRUE,
+           align = "right") #%>%
+  # spanning_header(sex, arm, label = "Here is a spanning header")
+  
+  
+  rpt <- create_report(fp, output_type = "DOCX", font = fnt, font_size = fsz) %>%
+    page_header(left = "Experis", right = c("Study ABC", "Status: Closed")) %>%
+    # options_fixed(line_count = 46) %>%
+    titles("Table 1.0", "Analysis Data Subject Listing\n And more stuff",
+           "Safety Population", align = "center", bold = TRUE) %>%
+    footnotes("Program Name: table1_0.R",
+              "Here is a big long footnote that is going to wrap\n at least once") %>%
+    page_footer(left = "Time", center = "Confidential",
+                right = "Page [pg] of [tpg]") %>%
+    add_content(tbl1)
+  
+  
+  res <- write_report(rpt)
+  res
+  expect_equal(file.exists(fp), TRUE)
+  
+  } else {
+    
+    expect_equal(TRUE, TRUE) 
+    
+  }
+  
+  
+})
 
 # User Tests --------------------------------------------------------------
 

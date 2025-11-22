@@ -1,6 +1,6 @@
 context("User Tests")
 
-base_path <- "c:/packages/reporter/tests/testthat"
+base_path <- paste0(getwd(),"/tests/testthat")
 data_dir <- base_path
 
 
@@ -496,7 +496,8 @@ test_that("user4: Adverse Events table works.", {
                 paste("# Episodes is defined as the total number of occurances",
                       "of adverse events"),
                 paste("% is defined as Number of Subjects divided by Total Reporting"),
-                "Note: Adverse events were coded using MedDRA Version 9.1") %>%
+                "Note: Adverse events were coded using MedDRA Version 9.1",
+                font_size = 9) %>%
       page_footer("Time", "Confidential", "Page [pg] of [tpg]")
     
     res <- write_report(rpt)
@@ -881,10 +882,10 @@ test_that("user12: Complex table works as expected.", {
       define(COL5, label = "n") %>% 
       define(COL6, label = "(%)", format = pfmt) %>% 
       define(COL7, label = "Overall\np-value*a", format = mfmt, width = .7) %>% 
-      define(COL8, label = "LLY20\nvs\nLLY10", format = mfmt) %>% 
-      define(COL9, label = "LLY75\nvs\nLLY10", format = mfmt) %>% 
-      define(COL10, label = "LLY75\nvs\nLLY20", format = mfmt) %>% 
-      define(COL11, label = "LLY75/\nLLY20", width = .6, format = mfmt) %>% 
+      define(COL8, label = "LLY20\nvs\nLLY10", format = mfmt, width = 0.48) %>% 
+      define(COL9, label = "LLY75\nvs\nLLY10", format = mfmt, width = 0.48) %>% 
+      define(COL10, label = "LLY75\nvs\nLLY20", format = mfmt, width = 0.48) %>% 
+      define(COL11, label = "LLY75/\nLLY20", width = .8, format = mfmt) %>% 
       titles("Testing Odds, Pairwise and Overall with 3 Trts",
              "SAMPLE TEXT FOR title5", align = "left", borders = "bottom", blank_row = "none") %>%
       footnotes("Abbreviations: N = number of subjects in population; n = number of subjects within category.",

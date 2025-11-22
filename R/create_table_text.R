@@ -159,7 +159,7 @@ create_table_pages_text <- function(rs, cntnt, lpg_rows) {
   # # print(widths_char)
 
   # Split long text strings into multiple rows
-  fdat <- split_cells(fdat, widths_char)
+  fdat <- split_cells(fdat, widths_char, ts, rs$char_width)
   # print("split_cells")
   # print(fdat)
 
