@@ -1,3 +1,22 @@
+# reporter 1.4.6
+
+* Added ability to set width of columns in page header and page footer. When
+width of a column is set to zero, it will be removed.
+* Added center column in page header.
+* Added functions `header_image()` and `footer_image()` to insert an image
+into the page header and footer.
+* Added "group_border" parameter to `define()` function to put a border line
+after each group.
+* Added a "bold" parameter to `page_by()` function to allow user to control
+bolding on page-by text.  Has options to bold label, value, or both.
+* Improved page breaking when page by label or value is very long.
+* Improved page breaking in some special situations, especially on DOCX.
+* Fixed bug on DOCX `page_footer()` when there are multiple rows.
+* Allow user to insert PNG image files on DOCX, RTF, and HTML output types.
+* Removed blank group row when it appears at the top of a page.
+* Fixed vertical alignment on HTML. 
+
+
 # reporter 1.4.5
 
 * Added ability to import EMF files to RTF and DOCX outputs.
@@ -7,7 +26,7 @@ If you want a fixed-width report, set `font = "fixed"` explicitly.
 * Improved indenting on the stub so wrapped lines are indented properly.
 * Fixed several problems with PDF borders.
 * Fixed problem with HTML spanning underlines.  
-* Added option for "blank_above" on `define()` function for all output types.
+* Added option for "blank_before" on `define()` function for all output types.
 * Increased max column width to 5 inches.
 
 # reporter 1.4.4

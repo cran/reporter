@@ -4,7 +4,14 @@
 \alias{page_footer}
 \title{Adds a page footer}
 \usage{
-page_footer(x, left = "", center = "", right = "", blank_row = "above")
+page_footer(
+  x,
+  left = "",
+  center = "",
+  right = "",
+  blank_row = "above",
+  width = NULL
+)
 }
 \arguments{
 \item{x}{The report spec object.}
@@ -20,6 +27,16 @@ of strings.}
 
 \item{blank_row}{Whether to create a blank row above the page footer.
 Valid values are 'above' and 'none'.  Default is 'above'.}
+
+\item{width}{Widths for left, center, and right columns of the page footer, 
+passed as a vector of double values in the report unit of measure.  If the vector
+contains fewer than three widths, the widths passed will be interpreted from
+left to right, and any unassigned column widths will be calculated from
+the remaining width on the page.  For example, if two values are assigned, they will be
+interpreted as left and center, and the right column width will be calculated.
+Setting a cell width to zero (0) will remove that column from the page footer
+entirely. To set the left and right widths only, pass a zero for the center
+cell, i.e. \code{width = c(6, 0, 3)} for a total width of 9 inches.}
 }
 \value{
 The modified report.
@@ -102,7 +119,9 @@ writeLines(readLines(tmp, encoding = "UTF-8"))
 Other report: 
 \code{\link{add_content}()},
 \code{\link{create_report}()},
+\code{\link{footer_image}()},
 \code{\link{footnotes}()},
+\code{\link{header_image}()},
 \code{\link{options_fixed}()},
 \code{\link{page_by}()},
 \code{\link{page_header}()},

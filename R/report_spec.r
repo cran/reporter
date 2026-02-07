@@ -895,9 +895,18 @@ set_margins <- function(x, top=NULL, bottom=NULL,
 #' of strings.
 #' @param blank_row Whether to create a blank row below the page header.
 #' Valid values are 'below' and 'none'.  Default is 'none'.
-#' @param width The width of the left column of the page header, in 
-#' report units of measure.  The right column will adjust automatically
-#' to equal the page width.
+#' @param width Widths for left, center, and right columns of the page header, 
+#' passed as a vector of double values in the report unit of measure.  If the vector
+#' contains fewer than three widths, the widths passed will be interpreted from
+#' left to right, and any unassigned column widths will be calculated from
+#' the remaining width on the page.  For example, if two values are assigned, they will be
+#' interpreted as left and center, and the right column width will be calculated.
+#' Setting a cell width to zero (0) will remove that column from the page header
+#' entirely. To set the left and right widths only, pass a zero for the center
+#' cell, i.e. \code{width = c(6, 0, 3)} for a total width of 9 inches.
+#' @param center The center page header text.  May be a single string or a vector
+#' of strings. By default, the center column is not displayed.  To display it,
+#' either assign a value on this parameter, or assign a width on the "width" parameter.
 #' @return The modified report specification.
 #' @family report
 #' @examples
@@ -943,12 +952,12 @@ set_margins <- function(x, top=NULL, bottom=NULL,
 #' # 2020-10-17 11:53:51                                                Page 1 of 1
 #' @export
 page_header <- function(x, left="", right="", blank_row = "none", 
-                        width = NULL){
+                        width = NULL, center = ""){
 
   if (!"report_spec" %in% class(x))
     stop("Page header can only be assigned to an object of class 'report_spec'")
   
-  if (length(left) > 5 | length(right) > 5){
+  if (length(left) > 5 | length(right) > 5 | length(center) > 5){
     stop("Header string count exceeds limit of 5 strings per side.")
   }
   
@@ -966,14 +975,25 @@ page_header <- function(x, left="", right="", blank_row = "none",
   if (has_glue()) {
     x$page_header_left <- gluev(left)
     x$page_header_right <- gluev(right)
+    x$page_header_center <- gluev(center)
 
   } else {
     
     x$page_header_left <- left
     x$page_header_right <- right
+    x$page_header_right <- center
 
   }
   x$page_header_blank_row <- blank_row
+  
+  
+  if (is.null(width)) {
+    # If no length is assigned, set center as 0 for not displaying
+    width <- c(NA, 0, NA)
+  } else if (length(width) == 1) {
+    # If only left length is assigned, set center as 0 for not displaying
+    width <- c(width, 0, NA)
+  }
   x$page_header_width <- width
 
   return(x)
@@ -1666,6 +1686,15 @@ footnotes <- function(x, ..., align = "left", blank_row = "above",
 #' of strings.
 #' @param blank_row Whether to create a blank row above the page footer.
 #' Valid values are 'above' and 'none'.  Default is 'above'.
+#' @param width Widths for left, center, and right columns of the page footer, 
+#' passed as a vector of double values in the report unit of measure.  If the vector
+#' contains fewer than three widths, the widths passed will be interpreted from
+#' left to right, and any unassigned column widths will be calculated from
+#' the remaining width on the page.  For example, if two values are assigned, they will be
+#' interpreted as left and center, and the right column width will be calculated.
+#' Setting a cell width to zero (0) will remove that column from the page footer
+#' entirely. To set the left and right widths only, pass a zero for the center
+#' cell, i.e. \code{width = c(6, 0, 3)} for a total width of 9 inches.
 #' @return The modified report.
 #' @family report
 #' @examples
@@ -1711,13 +1740,18 @@ footnotes <- function(x, ..., align = "left", blank_row = "above",
 #' # 
 #' # 2020-10-17 11:53:51                                                Page 1 of 1
 #' @export
-page_footer <- function(x, left="",  center="", right="", blank_row = "above"){
+page_footer <- function(x, left="",  center="", right="", blank_row = "above",
+                        width = NULL){
 
   if (!"report_spec" %in% class(x))
     stop("Page header can only be assigned to an object of class 'report_spec'")
   
   if (length(left) > 5 | length(right) > 5 | length(center) > 5){
     stop("Footer string count exceeds limit of 5 strings per section.")
+  }
+  
+  if (length(width) > 3){
+    stop("Width should be a vector with maximum three numeric values.")
   }
   
   if (is.null(blank_row))
@@ -1737,6 +1771,9 @@ page_footer <- function(x, left="",  center="", right="", blank_row = "above"){
     x$page_footer_center <- center
   }
   x$page_footer_blank_row <- blank_row
+  
+  # Assign width for left, center, and right
+  x$page_footer_width <- width
 
   return(x)
 }
@@ -1754,7 +1791,7 @@ page_footer <- function(x, left="",  center="", right="", blank_row = "above"){
 #' page by variable prior to reporting.
 #'
 #' @details
-#' Only one page by is allowed per report, table, or plot.  The page by 
+#' Only one page by function is allowed per report, table, or plot.  The page by 
 #' label will 
 #' appear on all pages of the object.  The page by label may be aligned on the 
 #' left, right, or center. Use the \code{align} parameter to specify the 
@@ -1782,10 +1819,15 @@ page_footer <- function(x, left="",  center="", right="", blank_row = "above"){
 #' and DOCX reports.
 #' @param format The format to use for the page by column data.  The format can 
 #' be a string format, a formatting function, a lookup list, a user-defined
-#' format, or a formatting list. 
-#' All formatting is performed by the \code{\link[fmtr]{fapply}} function from
+#' format, or a formatting list. All formatting is performed by the 
+#' \code{\link[fmtr]{fapply}} function from
 #' the \code{\link[fmtr]{fmtr}} package.  For 
 #' a list of common formatting codes, see \link[fmtr]{FormattingStrings}.
+#' @param bold A parameter to bold the page by text. Valid values are TRUE, FALSE, 
+#' 'label' or 'value'. Default is FALSE. A value of TRUE bolds both the label 
+#' and the page by value. The value 'label' bolds only the label, while a value
+#' of 'value' bolds only the page by value. This parameter 
+#' applies to variable-width RTF, HTML, PDF, and DOCX output types only.  
 #' @family report
 #' @seealso \code{\link{create_table}} to create a table, and 
 #' \code{\link{create_plot}} to create a plot.  
@@ -1902,7 +1944,8 @@ page_footer <- function(x, left="",  center="", right="", blank_row = "above"){
 #' # 2020-10-25 19:33:35                                                Page 3 of 3 
 #' @export
 page_by <- function(x, var, label = NULL, align = "left",
-                    blank_row = "below", borders = "none", format = NULL) {
+                    blank_row = "below", borders = "none", format = NULL,
+                    bold = FALSE) {
   
   
   # Create page by structure
@@ -1923,6 +1966,10 @@ page_by <- function(x, var, label = NULL, align = "left",
     stop(paste("Borders parameter invalid.  Valid values are", 
                "'top', 'bottom', 'left', 'right', 'all', 'outside', or 'none'."))
   
+  if (!bold %in% c(TRUE, FALSE, "label", "value")) {
+    stop("Bold parameter invalid. Valid values are TRUE, FALSE, 'label', or 'value'.")
+  }
+  
   var_c <- as.character(substitute(var, env = environment()))
   
   pb$var <- var_c
@@ -1935,11 +1982,159 @@ page_by <- function(x, var, label = NULL, align = "left",
   pb$blank_row <- blank_row
   pb$borders <- borders
   pb$format <- format
+  pb$bold <- bold
 
   x$page_by <- pb
   
   return(x)
   
+}
+
+#' @title
+#' Insert an image into the page header
+#'
+#' @description
+#' The \code{header_image} function inserts an image into the page header. The function
+#' can be used to add a logo or other graphical element to the report.
+#' The image will then appear at the top of each page.
+#' @details
+#' The function assumes 
+#' the existence of a page header inserted by the \code{\link{page_header}} function. 
+#' If there is no page header, an error will be generated during the rendering
+#' process in \code{\link{write_report}}. If there is text
+#' in the same cell as the image, the text will be disregarded. You may add text 
+#' to other cells in the header.
+#' 
+#' The "align" parameter determines which page header cell the image will be inserted.
+#' That is, if you align an image "left", it will be inserted into the left
+#' column of the page header. Options are "left", "right", and "center".  To
+#' insert images in multiple cells, you may use multiple calls to 
+#' \code{image_header}.
+#' 
+#' The page header cell width will take priority over the image width.  That is,
+#' if you set the image width larger than the cell width, the image width
+#' will be reduced to fit the cell.  To make a wider image, increase the cell
+#' width on the page header.  
+#' 
+#' Note that page header cells can be removed
+#' entirely by setting the width to zero.  This feature can give you more room
+#' for a wide image. For instance, to create a banner image over the entire report, 
+#' align the image "center" and set the left and right page header column 
+#' widths to zero.
+#' 
+#' See the \code{\link{page_header}} function for more information on
+#' setting header column widths.  For a demonstration of 
+#' a header image insertion, see \code{vignette("reporter-hfimage")}.
+#' @param x The report object.
+#' @param image_path The path of image file. Function accepts JPG images 
+#' for RTF, DOCX, PDF, and HTML output types. Function also accepts 
+#' PNG images for RTF, DOCX, and HTML output types.
+#' @param height Desired height of the image, in the report units of measure.
+#' @param width Desired width of the image, in the report units of measure.
+#' @param align Alignment of the image. Valid values are "left", "right", 
+#' "center", or "centre". The default value is "left".
+#' @return The modified report specification.
+#' @family report
+#' @export
+header_image <- function(x, image_path, height, width, align = "left") {
+  
+  
+  if (!any(class(image_path) %in% c("character"))) {
+    stop("image_path object must an image file path.")
+  }
+  
+  if (!align %in% c("left", "right", "center", "centre")) {
+    stop("align must be left or right.")
+  }
+  
+  header_image <- list()
+  header_image$image_path <- image_path
+  header_image$height <- height
+  header_image$width <- width
+  header_image$align <- align
+  
+  if (align == "left") {
+    x$header_image_left <- header_image
+  } else if (align == "right") {
+    x$header_image_right <- header_image
+  } else {
+    x$header_image_center <- header_image
+  }
+  
+  return(x)
+}
+
+#' @title
+#' Insert an image into the page footer
+#'
+#' @description
+#' The \code{footer_image} function inserts an image into the page footer. The function
+#' can be used to add a logo or other graphical element to the report.
+#' The image will then appear at the bottom of each page.
+#' @details
+#' The function assumes 
+#' the existence of a page footer inserted by the \code{\link{page_footer}} function. 
+#' If there is no page footer, an error will be generated during the rendering
+#' process in \code{\link{write_report}}. If there is text
+#' in the same cell as the image, the text will be disregarded. You may add text 
+#' to other cells in the footer.
+#' 
+#' The "align" parameter determines which page footer cell the image will be inserted.
+#' That is, if you align an image "left", it will be inserted into the left
+#' column of the page footer. Options are "left", "right", and "center".  To
+#' insert images in multiple cells, you may use multiple calls to 
+#' \code{image_footer}.
+#' 
+#' The page footer cell width will take priority over the image width.  That is,
+#' if you set the image width larger than the cell width, the image width
+#' will be reduced to fit the cell.  To make a wider image, increase the cell
+#' width on the page footer.  
+#' 
+#' Note that page footer cells can be removed
+#' entirely by setting the width to zero.  This feature can give you more room
+#' for a wide image. For instance, to create a banner image under the entire report, 
+#' align the image "center" and set the left and right page header column 
+#' widths to zero.
+#' 
+#' See the \code{\link{page_footer}} function for more information on
+#' setting footer column widths.  For a demonstration of 
+#' a header image insertion, see \code{vignette("reporter-hfimage")}.
+#' 
+#' @param x The report object to insert the image into.
+#' @param image_path The path of image file. Function accepts JPG images 
+#' for RTF, DOCX, PDF, and HTML output types. Function also accepts 
+#' PNG images for RTF, DOCX, and HTML output types.
+#' @param height Desired height of the image, in the report units of measure.
+#' @param width Desired width of the image, in the report units of measure.
+#' @param align Alignment of the image in the page footer. Valid values are 
+#' "left", "right", "center", or "centre". The default value is "left".
+#' @return The modified report specification.
+#' @family report
+#' @export
+footer_image <- function(x, image_path, height, width, align = "left") {
+  if (!any(class(image_path) %in% c("character"))) {
+    stop("image_path object must an image file path.")
+  }
+  
+  if (!align %in% c("left", "right", "center", "centre")) {
+    stop("align must be left, right, center, or centre.")
+  }
+  
+  footer_image <- list()
+  footer_image$image_path <- image_path
+  footer_image$height <- height
+  footer_image$width <- width
+  footer_image$align <- align
+  
+  if (align == "left") {
+    x$footer_image_left <- footer_image
+  } else if (align == "right") {
+    x$footer_image_right <- footer_image
+  } else {
+    x$footer_image_center <- footer_image
+  }
+  
+  return(x)
 }
 
 # Functions ---------------------------------------------------------------

@@ -23,7 +23,8 @@ define(
   indent = NULL,
   label_row = FALSE,
   standard_eval = FALSE,
-  style = NULL
+  style = NULL,
+  group_border = FALSE
 )
 }
 \arguments{
@@ -119,6 +120,11 @@ value(s) using a variable.}
 \item{style}{A \code{\link{cell_style}} object that defines the desired
 style for this column.  The cell style object can be used to define 
 conditional styling.}
+
+\item{group_border}{Adds a horizontal border at the end of a group. 
+Valid values are TRUE or FALSE. Default is FALSE. The group border is
+another way to separate analysis groups, and can be used in addition
+to or instead of the "blank_before" and "blank_after" parameters.}
 }
 \value{
 The modified table spec.

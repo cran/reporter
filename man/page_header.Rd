@@ -4,7 +4,14 @@
 \alias{page_header}
 \title{Add a page header}
 \usage{
-page_header(x, left = "", right = "", blank_row = "none", width = NULL)
+page_header(
+  x,
+  left = "",
+  right = "",
+  blank_row = "none",
+  width = NULL,
+  center = ""
+)
 }
 \arguments{
 \item{x}{The report object.}
@@ -18,9 +25,19 @@ of strings.}
 \item{blank_row}{Whether to create a blank row below the page header.
 Valid values are 'below' and 'none'.  Default is 'none'.}
 
-\item{width}{The width of the left column of the page header, in 
-report units of measure.  The right column will adjust automatically
-to equal the page width.}
+\item{width}{Widths for left, center, and right columns of the page header, 
+passed as a vector of double values in the report unit of measure.  If the vector
+contains fewer than three widths, the widths passed will be interpreted from
+left to right, and any unassigned column widths will be calculated from
+the remaining width on the page.  For example, if two values are assigned, they will be
+interpreted as left and center, and the right column width will be calculated.
+Setting a cell width to zero (0) will remove that column from the page header
+entirely. To set the left and right widths only, pass a zero for the center
+cell, i.e. \code{width = c(6, 0, 3)} for a total width of 9 inches.}
+
+\item{center}{The center page header text.  May be a single string or a vector
+of strings. By default, the center column is not displayed.  To display it,
+either assign a value on this parameter, or assign a width on the "width" parameter.}
 }
 \value{
 The modified report specification.
@@ -97,7 +114,9 @@ writeLines(readLines(tmp, encoding = "UTF-8"))
 Other report: 
 \code{\link{add_content}()},
 \code{\link{create_report}()},
+\code{\link{footer_image}()},
 \code{\link{footnotes}()},
+\code{\link{header_image}()},
 \code{\link{options_fixed}()},
 \code{\link{page_by}()},
 \code{\link{page_footer}()},
