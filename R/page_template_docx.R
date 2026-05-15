@@ -10,7 +10,7 @@
 #' @noRd
 page_template_docx <- function(rs) {
   
-  pt <- structure(list(), class = c("page_template_html", "list"))
+  pt <- structure(list(), class = c("page_template_docx", "list"))
   
   pt$page_header <- get_page_header_docx(rs)
   pt$title_hdr <- get_title_header_docx(rs$title_hdr, rs$line_size, rs)
@@ -217,11 +217,11 @@ get_page_header_docx <- function(rs) {
           
           if (image_left == FALSE) {
             # Split strings if they exceed width
-            tmp <- split_string_html(hl[[i]], left_width, rs$units)
+            tmp <- split_string_docx(hl[[i]], left_width, rs$units, rs$font)
             
             cret <- paste0(cret, 
                            '<w:tc><w:tcPr><w:tcW w:w="', left_pct, '" w:type="pct"/></w:tcPr>', 
-                           get_page_numbers_docx(para(tmp$html)),
+                           get_page_numbers_docx(para(tmp$docx)),
                            "</w:tc>\n")
             
             lcnt <- tmp$lines
@@ -259,11 +259,11 @@ get_page_header_docx <- function(rs) {
           
           if (image_center == FALSE) {
             # Split strings if they exceed width
-            tmp2 <- split_string_html(hc[[i]], center_width, rs$units)
+            tmp2 <- split_string_docx(hc[[i]], center_width, rs$units, font = rs$font)
             
             cret <- paste0(cret, 
                            '<w:tc><w:tcPr><w:tcW w:w="', center_pct, '" w:type="pct"/></w:tcPr>', 
-                           get_page_numbers_docx(para(tmp2$html)),
+                           get_page_numbers_docx(para(tmp2$docx)),
                            "</w:tc>\n")
             
             ccnt <- tmp2$lines
@@ -301,12 +301,12 @@ get_page_header_docx <- function(rs) {
           
           if (image_right == FALSE) {
             # Split strings if they exceed width
-            tmp3 <- split_string_html(hr[[i]], right_width, rs$units)
+            tmp3 <- split_string_docx(hr[[i]], right_width, rs$units, font = rs$font)
             
             
             cret <- paste0(cret, 
                            '<w:tc><w:tcPr><w:tcW w:w="', right_pct, '" w:type="pct"/></w:tcPr>', 
-                           get_page_numbers_docx(para(tmp3$html, "right")), 
+                           get_page_numbers_docx(para(tmp3$docx, "right")), 
                            "</w:tc>")
             
             rcnt <- tmp3$lines 
@@ -374,16 +374,20 @@ get_page_header_docx <- function(rs) {
     }
     
   }
-    
+  
+  # Prepare lines for converting to content font size
+  cnt_content <- cnt
   if (!is.null(rs$header_titles)) {
     
     tret <- get_titles_docx(rs$header_titles, rs$content_size[["width"]], rs)
     ret <- paste0(ret, rs$table_break, tret$docx)
     cnt <- cnt + tret$lines
+    cnt_content <- cnt_content + tret$lines_content
     
   }
 
-  res <- list(docx = ret, lines = cnt, image_path = image_path)
+  res <- list(docx = ret, lines = cnt, image_path = image_path,
+              lines_content = cnt_content)
   
   return(res)
 }
@@ -545,11 +549,11 @@ get_page_footer_docx <- function(rs) {
           
           if (image_left == FALSE) {
             # Split strings if they exceed width
-            tmp1 <- split_string_html(fl[[i]], left_width, rs$units)
+            tmp1 <- split_string_docx(fl[[i]], left_width, rs$units, font = rs$font)
             
             
-            # tret <- paste0(tret, cell_pct(tmp1$html, "left", 1667))
-            tret <- paste0(tret, cell_pct(tmp1$html, "left", left_pct))
+            # tret <- paste0(tret, cell_pct(tmp1$docx, "left", 1667))
+            tret <- paste0(tret, cell_pct(tmp1$docx, "left", left_pct))
             
             lcnt <- tmp1$lines
           } else {
@@ -584,10 +588,10 @@ get_page_footer_docx <- function(rs) {
           
           if (image_center == FALSE) {
             # Split strings if they exceed width
-            tmp2 <- split_string_html(fc[[i]], center_width, rs$units)
+            tmp2 <- split_string_docx(fc[[i]], center_width, rs$units, font = rs$font)
             
-            # tret <- paste0(tret,  cell_pct(tmp2$html, "center", 1666))
-            tret <- paste0(tret,  cell_pct(tmp2$html, "center", center_pct))
+            # tret <- paste0(tret,  cell_pct(tmp2$docx, "center", 1666))
+            tret <- paste0(tret,  cell_pct(tmp2$docx, "center", center_pct))
             ccnt <- tmp2$lines
           } else {
             # Calculate image height & width
@@ -620,10 +624,10 @@ get_page_footer_docx <- function(rs) {
         if (fr_num >= i) {
           
           if (image_right == FALSE) {
-            tmp3 <- split_string_html(fr[[i]], right_width, rs$units)
+            tmp3 <- split_string_docx(fr[[i]], right_width, rs$units, font = rs$font)
             
-            # tret <- paste0(tret, cell_pct(tmp3$html, "right", 1667))
-            tret <- paste0(tret, cell_pct(tmp3$html, "right", right_pct))
+            # tret <- paste0(tret, cell_pct(tmp3$docx, "right", 1667))
+            tret <- paste0(tret, cell_pct(tmp3$docx, "right", right_pct))
             
             rcnt <- tmp3$lines
           } else {
@@ -675,11 +679,14 @@ get_page_footer_docx <- function(rs) {
     ret <- paste0(ret, "</w:tbl>\n")
   }
   
+  # Prepare lines for converting to content font size
+  cnt_content <- cnt
   if (!is.null(rs$footer_footnotes)) {
     
     tret <- get_footnotes_docx(rs$footer_footnotes, rs$content_size[["width"]], rs)
     ret <- paste0(tret$docx, rs$table_break, ret)
     cnt <- cnt + tret$lines
+    cnt_content <- cnt_content + tret$lines_content
     
   }
 
@@ -687,7 +694,8 @@ get_page_footer_docx <- function(rs) {
   
   res <- list(docx = paste0(ret, collapse = ""),
               lines = cnt,
-              image_path = image_path)
+              image_path = image_path,
+              lines_content = cnt_content)
   
   return(res)
 }
@@ -705,6 +713,10 @@ get_titles_docx <- function(ttllst, content_width, rs, talgn = "center",
   rht <- get_row_height(round(rs$row_height * conv))
   cflag <- FALSE
   
+  # The heights for converting to content font size
+  total_height <- 0
+  title_size_flag <- FALSE
+  cnt_content <- 0
   
   if (length(ttllst) > 0) {
     
@@ -757,6 +769,9 @@ get_titles_docx <- function(ttllst, content_width, rs, talgn = "center",
       alcnt <- 0
       blcnt <- 0
       
+      # Lines per each title object for converting to content size later
+      cnt_ttl <- 0
+      
       # Open device context
       pdf(NULL)
       
@@ -793,6 +808,7 @@ get_titles_docx <- function(ttllst, content_width, rs, talgn = "center",
         ret <- append(ret, al)
         
         cnt <- cnt + 1
+        cnt_ttl <- cnt_ttl + 1
       }
       
       
@@ -816,7 +832,9 @@ get_titles_docx <- function(ttllst, content_width, rs, talgn = "center",
         bb <- ""  # needed?
         
         cnt <- cnt + 1
+        cnt_ttl <- cnt_ttl + 1
       }
+      
       
       
       i <- 1
@@ -855,14 +873,14 @@ get_titles_docx <- function(ttllst, content_width, rs, talgn = "center",
           }
 
           # Split title strings if they exceed width
-          tmp <- split_string_html(vl, cwidth, rs$units)
+          tmp <- split_string_docx(vl, cwidth, rs$units, font = rs$font)
           
           # Track max lines for counting
           if (tmp$lines > mxlns)
             mxlns <- tmp$lines
           
           # Get paragraph 
-          tstr <- para(tmp$html, calgn, ttlfs, ttls$bold)
+          tstr <- para(tmp$docx, calgn, ttlfs, ttls$bold)
 
           cwdth <- paste0('<w:tcW w:w="', cw,'"/>')
           
@@ -881,6 +899,7 @@ get_titles_docx <- function(ttllst, content_width, rs, talgn = "center",
         } else {
           
           srht <- get_row_height(round(get_rh(rs$font, ttls$font_size) * mxlns * conv))
+          title_size_flag <- TRUE
           
         }
         
@@ -889,8 +908,16 @@ get_titles_docx <- function(ttllst, content_width, rs, talgn = "center",
         
         # Track lines
         cnt <- cnt + mxlns
-
+        cnt_ttl <- cnt_ttl + mxlns
       }
+      
+      # Sum of total height
+      if (!is.null(ttls$font_size)) {
+        total_height <- total_height + cnt_ttl * get_rh(rs$font, ttls$font_size)
+      } else {
+        total_height <- total_height + cnt_ttl * rs$row_height
+      }
+      
       
       if (bl != "")
         ret <- append(ret, bl)
@@ -911,13 +938,19 @@ get_titles_docx <- function(ttllst, content_width, rs, talgn = "center",
 
     }
     
+    if (title_size_flag) {
+      cnt_content <- ceiling(total_height / rs$row_height)
+    } else {
+      cnt_content <- cnt
+    }
   }
   
 
   
   res <- list(docx = paste0(ret, collapse = ""), 
               lines = cnt,
-              border_flag = border_flag)
+              border_flag = border_flag,
+              lines_content = cnt_content)
   
   return(res)
 }
@@ -1043,10 +1076,10 @@ get_titles_docx_back <- function(ttllst, content_width, rs, talgn = "center",
         
         
         # Split title strings if they exceed width
-        tmp <- split_string_html(ttls$titles[[i]], width, rs$units)
+        tmp <- split_string_docx(ttls$titles[[i]], width, rs$units, font = rs$font)
         
         
-        tstr <- para(tmp$html, algn, ttls$font_size, ttls$bold)
+        tstr <- para(tmp$docx, algn, ttls$font_size, ttls$bold)
         
         
         
@@ -1118,6 +1151,12 @@ get_footnotes_docx <- function(ftnlst, content_width, rs, talgn = "center",
   rht <- get_row_height(round(rs$row_height * conv))
 
   u <- rs$units
+  
+  # The heights for converting to content font size
+  total_height <- 0
+  footnote_size_flag <- FALSE
+  cnt_content <- 0
+  
   if (rs$units == "inches")
     u <- "in"
   
@@ -1171,6 +1210,8 @@ get_footnotes_docx <- function(ftnlst, content_width, rs, talgn = "center",
       alcnt <- 0
       blcnt <- 0
 
+      # Lines per each footnote object for converting to content size later
+      cnt_ft <- 0
 
       pdf(NULL)
       
@@ -1211,6 +1252,7 @@ get_footnotes_docx <- function(ftnlst, content_width, rs, talgn = "center",
         ret <- append(ret, al)
         
         cnt <- cnt + 1
+        cnt_ft <- cnt_ft + 1
         bb <- ""
         
       }
@@ -1239,6 +1281,7 @@ get_footnotes_docx <- function(ftnlst, content_width, rs, talgn = "center",
         bb <- "" 
         
         cnt <- cnt + 1
+        cnt_ft <- cnt_ft + 1
       }
 
       i <- 1
@@ -1278,14 +1321,14 @@ get_footnotes_docx <- function(ftnlst, content_width, rs, talgn = "center",
           }
   
           # Split footnote strings if they exceed width
-          tmp <- split_string_html(vl, cwidth, rs$units)
+          tmp <- split_string_docx(vl, cwidth, rs$units, font = rs$font)
           
           # Track max lines for counting
           if (tmp$lines > mxlns)
             mxlns <- tmp$lines
           
           # Get paragraph 
-          tstr <- para(tmp$html, calgn, ftntfs, italics = ftnts$italics)
+          tstr <- para(tmp$docx, calgn, ftntfs, italics = ftnts$italics)
           
           cwdth <- paste0('<w:tcW w:w="', cw,'"/>')
           
@@ -1318,6 +1361,7 @@ get_footnotes_docx <- function(ftnlst, content_width, rs, talgn = "center",
         } else {
           
           srht <- get_row_height(round(get_rh(rs$font, ftnts$font_size) * mxlns * conv))
+          footnote_size_flag <- TRUE
           
         }
         
@@ -1329,16 +1373,19 @@ get_footnotes_docx <- function(ftnlst, content_width, rs, talgn = "center",
         
         # Track lines
         cnt <- cnt + mxlns
-        
+        cnt_ft <- cnt_ft + mxlns
         
       }
       
-
-      
-
+      # Sum of total height
+      if (!is.null(ftnts$font_size)) {
+        total_height <- total_height + cnt_ft * get_rh(rs$font, ftnts$font_size)
+      } else {
+        total_height <- total_height + cnt_ft * rs$row_height
+      }
       
       # ret <- append(ret, paste0("<w:tr>", trht, 
-      #                           "<w:tc>", bb, para(tmp$html, algn, 
+      #                           "<w:tc>", bb, para(tmp$docx, algn, 
       #                                              italics = ftnts$italics), 
       #                           "</w:tc></w:tr>\n"))
       
@@ -1353,15 +1400,20 @@ get_footnotes_docx <- function(ftnlst, content_width, rs, talgn = "center",
 
     }
     
+    if (footnote_size_flag) {
+      cnt_content <- ceiling(total_height / rs$row_height)
+    } else {
+      cnt_content <- cnt
+    }
 
-    
-    ret <- get_page_numbers_docx(ret)
+    # For Issue 341, comment out the page process
+    # ret <- get_page_numbers_docx(ret)
 
   }
 
   
   res <- list(docx = paste0(paste0(ret,  collapse = ""), rs$table_break),
-              lines = cnt)
+              lines = cnt, lines_content = cnt_content)
   
   return(res)
 }
@@ -1490,7 +1542,7 @@ get_footnotes_docx_back <- function(ftnlst, content_width, rs, talgn = "center",
         
         
         # Split footnote strings if they exceed width
-        tmp <- split_string_html(ftnts$footnotes[[i]], width, rs$units)
+        tmp <- split_string_docx(ftnts$footnotes[[i]], width, rs$units, font = rs$font)
         
         if (al != "")
           ret <- append(ret, al)
@@ -1499,7 +1551,7 @@ get_footnotes_docx_back <- function(ftnlst, content_width, rs, talgn = "center",
         trht <- get_row_height(round(rs$row_height * tmp$lines * conv))
         
         ret <- append(ret, paste0("<w:tr>", trht, 
-                                  "<w:tc>", bb, para(tmp$html, algn, 
+                                  "<w:tc>", bb, para(tmp$docx, algn, 
                                                      italics = ftnts$italics), 
                                   "</w:tc></w:tr>\n"))
         
@@ -1640,9 +1692,9 @@ get_title_header_docx <- function(thdrlst, content_width, rs, talgn = "center",
 
         if (length(ttlhdr$titles) >= i) {
           # Split strings if they exceed width
-          tmp1 <- split_string_html(ttlhdr$titles[[i]], width * .7, rs$units)
+          tmp1 <- split_string_docx(ttlhdr$titles[[i]], width * .7, rs$units, font = rs$font)
 
-          ttl <-  tmp1$html 
+          ttl <-  tmp1$docx 
           tcnt <- tmp1$lines
         } else {
           ttl <- ""
@@ -1650,11 +1702,11 @@ get_title_header_docx <- function(thdrlst, content_width, rs, talgn = "center",
         }
 
         if (length(ttlhdr$right) >= i) {
-          tmp2 <- split_string_html(ttlhdr$right[[i]],
-                                   width * .3, rs$units)
+          tmp2 <- split_string_docx(ttlhdr$right[[i]],
+                                   width * .3, rs$units, font = rs$font)
 
           
-          hdr <- tmp2$html
+          hdr <- tmp2$docx
           hcnt <- tmp2$lines
         } else {
           hdr <- " "
@@ -1871,57 +1923,54 @@ get_page_by_docx <- function(pgby, width, value, rs, talgn,
       
       # Split label
       label_buffer <- ifelse(bold[1] == TRUE, 0.5, 0.2)
-      label_split <- split_string_html(pgby$label, width - label_buffer, rs$units)
+      label_split <- split_string_docx(pgby$label, width - label_buffer, rs$units, font = rs$font)
       cnt <- cnt + label_split$lines
-      tmp_cnt <- tmp_cnt + label_split$lines # To be deleted
 
       # Split value
       value_buffer <- ifelse(bold[2] == TRUE, 0.5, 0.2)
       label_last_width <- label_split$widths[length(label_split$widths)]
       remain_width <- width - label_last_width - value_buffer
-      value_split <- split_string_html(value, remain_width, rs$units)
+      value_split <- split_string_docx(value, remain_width, rs$units, font = rs$font)
 
       remain_value_lines <- 0
       if (value_split$widths[1] > remain_width) {
         # If the first width is greater than remain width, it means value start a new line
-        value_split <- split_string_html(value, width, rs$units)
+        value_split <- split_string_docx(value, width, rs$units, font = rs$font)
         cnt <- cnt + value_split$lines
         remain_value_lines <- value_split$lines
-        tmp_cnt <- tmp_cnt + value_split$lines # To be deleted
-        value_split_txt <- value_split$html
+        value_split_txt <- value_split$docx
       } else {
         # If not, calculate from second line with full width
-        splt <- strsplit(value_split$html, split = "\n", fixed = TRUE)
+        splt <- strsplit(value_split$docx, split = "\n", fixed = TRUE)
         if (length(splt[[1]]) > 1) {
           remain_value <- trimws(sub(splt[[1]][1], "", value), which = "left")
-          remain_value_split <- split_string_html(remain_value, width - value_buffer, rs$units)
+          remain_value_split <- split_string_docx(remain_value, width - value_buffer, rs$units, font = rs$font)
           cnt <- cnt + remain_value_split$lines
-          tmp_cnt <- tmp_cnt + remain_value_split$lines # To be deleted
           remain_value_lines <- remain_value_split$lines
           
-          value_split_txt <- paste0(splt[[1]][1], "\n", remain_value_split$html)
+          value_split_txt <- paste0(splt[[1]][1], "\n", remain_value_split$docx)
         } else {
-          value_split_txt <- value_split$html
+          value_split_txt <- value_split$docx
         }
       }
       
       vrht <- get_row_height(round(rs$row_height * conv) * (label_split$lines + remain_value_lines))
       
       # Make sure there is blank between label and value
-      label_nchar <- nchar(label_split$html)
+      label_nchar <- nchar(label_split$docx)
       value_nchar <- nchar(value_split_txt)
-      if (substr(label_split$html, label_nchar, label_nchar) != " "
+      if (substr(label_split$docx, label_nchar, label_nchar) != " "
           & substr(value_split_txt, value_nchar, value_nchar) != " "){
         value_split_txt <- paste0(" ", value_split_txt)
       }
       
       # print(paste0("w is ", w))
       # print(paste0("line is ", tmp_cnt))
-      # print(paste0("label is ", label_split$html))
+      # print(paste0("label is ", label_split$docx))
       # print(paste0("value is ", value_split_txt))
       
       ret <- append(ret, paste0("<w:tr>", vrht, 
-                                cell_abs(c(label_split$html, value_split_txt), width = w, 
+                                cell_abs(c(label_split$docx, value_split_txt), width = w, 
                                          borders = vb, bold = bold, multiple = TRUE), 
                                 "</w:tr>\n"))
     }

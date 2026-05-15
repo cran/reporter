@@ -376,6 +376,14 @@ create_table <- function(x, show_cols = "all", use_attributes = "all",
 #' Valid values are TRUE or FALSE. Default is FALSE. The group border is
 #' another way to separate analysis groups, and can be used in addition
 #' to or instead of the "blank_before" and "blank_after" parameters.
+#' @param group_cohesion Default is FALSE. If TRUE, it would avoid splitting the 
+#' same group across multiple pages with default strength 0.2. Users can increase
+#' the strength to make groups on the same page more likely. The accepted value
+#' is 0 to 1.
+#' @param break_label Decide whether to repeat the grouping value when the group 
+#' spans multiple pages. If set it as TRUE, when a group spans, the break label will 
+#' be displayed as a label of the first row. If set it as a text such as "(Continued)",
+#' it would be used as a suffix text. E.g., Investigation (Continued).
 #' @return The modified table spec.
 #' @family table
 #' @examples
@@ -458,7 +466,8 @@ define <- function(x, vars, label = NULL, format = NULL,
                    visible=TRUE, n = NULL, blank_after=FALSE, blank_before=FALSE,
                    dedupe=FALSE, id_var = FALSE, page_wrap = FALSE,
                    page_break = FALSE, indent = NULL, label_row = FALSE,
-                   standard_eval = FALSE, style = NULL, group_border = FALSE) {
+                   standard_eval = FALSE, style = NULL, group_border = FALSE,
+                   group_cohesion = FALSE, break_label = NULL) {
   
   if (standard_eval) {
     if (!typeof(vars) %in% c("character", "numeric")) {
@@ -509,6 +518,41 @@ define <- function(x, vars, label = NULL, format = NULL,
     }
   }
   
+  # Parse group cohesion into min page proportion
+  # If gorup_cohesion is a fraction, assign it to min_page_prop for internal using
+  min_page_prop <- NULL
+  if (group_cohesion != FALSE) {
+    if (group_cohesion == TRUE & !is.numeric(group_cohesion)) {
+      
+      min_page_prop <- 0.8
+      
+    } else if (is.numeric(group_cohesion)) {
+      
+      if (group_cohesion > 1 | group_cohesion < 0) {
+        stop(paste0("`group_cohesion` should be TRUE/FALSE or numeric value ",
+                    "from 0 to 1 instead of ", group_cohesion, "."))
+      } else {
+        min_page_prop <- 1 - group_cohesion
+        group_cohesion <-  TRUE
+      }
+      
+    } else {
+      stop(paste0("`group_cohesion` should be TRUE/FALSE or numeric value ",
+                  "from 0 to 1 instead of '", group_cohesion, "'."))
+    }
+  }
+  
+  # Process break_label
+  if (!is.null(break_label)) {
+    if (break_label == TRUE) {
+      break_label <- ""
+    } else if (break_label == FALSE) {
+      break_label <- NULL
+    } else if (!is.character(break_label)) {
+      stop("`break_label` should be character value or TRUE/FALSE.")
+    }
+  }
+  
   # For each passed variable, create an individual definition
   # This make subsequent processing much easier
   for (nm in vars_c) {
@@ -527,7 +571,9 @@ define <- function(x, vars, label = NULL, format = NULL,
                    blank_before = blank_before,
                    dedupe=dedupe, id_var = id_var, page_wrap = page_wrap,
                    page_break = page_break, indent = indent, 
-                   label_row = label_row, style = style, group_border = group_border)
+                   label_row = label_row, style = style, group_border = group_border,
+                   group_cohesion = group_cohesion, min_page_prop = min_page_prop,
+                   break_label = break_label)
    
    x$col_defs[[nm]] <- def
    
@@ -551,7 +597,9 @@ define_c <- function(var, label = NULL, format = NULL,
                    blank_before = FALSE,
                    dedupe=FALSE, id_var = FALSE, page_wrap = FALSE,
                    page_break = FALSE, indent = NULL, label_row = FALSE,
-                   style = NULL, group_border = FALSE) {
+                   style = NULL, group_border = FALSE,
+                   group_cohesion = FALSE, min_page_prop = NULL,
+                   break_label = NULL) {
   
   
   if (!typeof(var) %in% c("character", "numeric"))
@@ -583,6 +631,9 @@ define_c <- function(var, label = NULL, format = NULL,
     def$dedupe <- TRUE
   def$style <- style
   def$group_border <- group_border
+  def$group_cohesion <- group_cohesion
+  def$min_page_prop <- min_page_prop
+  def$break_label <- break_label
   
   return(def)
 }

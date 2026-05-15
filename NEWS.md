@@ -1,3 +1,12 @@
+# reporter 1.4.7
+
+* Added "group_cohesion" and "break_label" parameters to `define()` function. 
+* Fixed page numbering in titles and footnotes.
+* Improved page breaking for DOCX.
+* Fixed issues with spanning header borders.
+* Allow user to remove stub row label by passing an NA.
+* Fixed some issues with blank rows.
+
 # reporter 1.4.6
 
 * Added ability to set width of columns in page header and page footer. When

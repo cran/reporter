@@ -24,7 +24,9 @@ define(
   label_row = FALSE,
   standard_eval = FALSE,
   style = NULL,
-  group_border = FALSE
+  group_border = FALSE,
+  group_cohesion = FALSE,
+  break_label = NULL
 )
 }
 \arguments{
@@ -125,6 +127,16 @@ conditional styling.}
 Valid values are TRUE or FALSE. Default is FALSE. The group border is
 another way to separate analysis groups, and can be used in addition
 to or instead of the "blank_before" and "blank_after" parameters.}
+
+\item{group_cohesion}{Default is FALSE. If TRUE, it would avoid splitting the 
+same group across multiple pages with default strength 0.2. Users can increase
+the strength to make groups on the same page more likely. The accepted value
+is 0 to 1.}
+
+\item{break_label}{Decide whether to repeat the grouping value when the group 
+spans multiple pages. If set it as TRUE, when a group spans, the break label will 
+be displayed as a label of the first row. If set it as a text such as "(Continued)",
+it would be used as a suffix text. E.g., Investigation (Continued).}
 }
 \value{
 The modified table spec.
