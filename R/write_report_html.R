@@ -392,10 +392,10 @@ write_content_html <- function(rs, hdr, body, pt) {
       
       if (!is.null(pg)) {
         # Replace page numbers in title/footnote of report/content
-        pg <- page_replace_html(pg, rs, "titles", rs$pages)
-        pg <- page_replace_html(pg, rs, "footnotes", rs$pages)
-        pg <- page_replace_html(pg, cont$object, "titles", rs$pages)
-        pg <- page_replace_html(pg, cont$object, "footnotes", rs$pages)
+        pg <- page_replace_html(pg, rs, "titles", rs$pages, rs)
+        pg <- page_replace_html(pg, rs, "footnotes", rs$pages, rs)
+        pg <- page_replace_html(pg, cont$object, "titles", rs$pages, rs)
+        pg <- page_replace_html(pg, cont$object, "footnotes", rs$pages, rs)
         # 
         # if (!is.null(rs$titles)) {
         #   for (rt in rs$titles) {
@@ -629,12 +629,41 @@ page_setup_html <- function(rs) {
 #' @description Replace page number in title and footnote
 #' @details  Replace page number in title and footnote
 #' @noRd
-page_replace_html <- function(pg, target, type = "titles", page) {
+page_replace_html <- function(pg, target, type = "titles", page, rs = NULL) {
+  if (is.null(rs)){
+    rs <- list()
+    rs$line_break <- TRUE
+  }
+  
   if (!is.null(target[[type]])) {
     for (v in target[[type]]) {
       for (v_string in v[[type]]) {
         if (v_string != "") {
-          raw_title <- encodeHTML(v_string)
+          
+          # Preprocess v_string to make it consistent with pg
+          if (rs$allow_code) {
+            html_control_regex <- "(?i)<\\/?([a-z]+)[^>]*>|&[a-z0-9#]+;"
+            wrds_temp <- regmatches(v_string, gregexpr(html_control_regex, v_string), invert = NA)[[1]]
+            wrds_temp <- wrds_temp[wrds_temp != ""]
+            
+            wrds <- c()
+            wrds_html <- c()
+            for (word in wrds_temp) {
+              if (grepl(html_control_regex, word)) {
+                wrds <- c(wrds, word)
+                wrds_html <- c(wrds_html, TRUE)
+              } else {
+                split_word <- strsplit(word, " ", fixed = TRUE)[[1]]
+                wrds <- c(wrds, split_word)
+                wrds_html <- c(wrds_html, rep(FALSE, length(split_word)))
+              }
+            }
+            
+            v_string <- paste(wrds, collapse = " ")
+          }
+          
+          raw_title <- encodeHTML(v_string, nbsp = rs$line_break,
+                                  allow_html_code = rs$allow_code)
           new_title <- update_page(raw_title, page)
           pg <- gsub(raw_title, new_title, pg, fixed = TRUE)
         }

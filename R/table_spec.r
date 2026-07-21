@@ -122,6 +122,16 @@
 #' outputs.  Also, this parameter only works for titles and footnotes that
 #' are attached to the table body.  Titles and footnotes attached to the 
 #' report will still be shown on every page. 
+#' @param page_wrap Whether to use automatic page wrapping when there are too 
+#' many columns fit within the calculated content area. Default is TRUE, meaning
+#' automatic page wrapping is on. Set it to FALSE to disable this feature and 
+#' control page wrapping yourself.
+#' @param auto_page Whether to use auto pagination. Default is TRUE. A value
+#' of FALSE will disable auto pagination, and let you control page breaking yourself
+#' using the `page_break` variable on the \code{\link{define}} function.
+#' The "auto_page" value on \code{\link{create_table}} will override the 
+#' corresponding setting in the \code{\link{report_options}}.
+#' Please note that turning off auto pagination may cause page overflows.
 #' @family table
 #' @seealso \code{\link{create_report}} to create a report, 
 #' \code{\link{create_plot}} to create a plot,
@@ -196,7 +206,8 @@ create_table <- function(x, show_cols = "all", use_attributes = "all",
                          first_row_blank=FALSE,
                          n_format = upcase_parens, headerless = FALSE,
                          borders = "none", header_bold = FALSE, 
-                         continuous = FALSE) {
+                         continuous = FALSE, page_wrap = NULL,
+                         auto_page = NULL) {
   if (is.null(x)) {
     stop("Data parameter 'x' missing or invalid.") 
     
@@ -253,6 +264,22 @@ create_table <- function(x, show_cols = "all", use_attributes = "all",
     ret$use_attributes <- c("")
   else  
     ret$use_attributes <- use_attributes
+  
+  if (!is.null(page_wrap)) {
+    if (!is.logical(page_wrap)){
+      stop("`page_wrap` should be TRUE or FALSE")
+    } else {
+      ret$page_wrap <- page_wrap
+    }
+  }
+  
+  if (!is.null(auto_page)) {
+    if (!is.logical(auto_page)){
+      stop("`auto_page` should be TRUE or FALSE")
+    } else {
+      ret$auto_page <- auto_page
+    }
+  }
   
   # Apply any titles, footnotes, or spans
   # attached to the data frame itself

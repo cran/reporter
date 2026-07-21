@@ -89,6 +89,7 @@ initialized with \code{create_report}.
   \item \code{\link{page_header}} to add a page header to the report. 
   \item \code{\link{page_footer}} to add a page_footer to the report. 
   \item \code{\link{add_content}} to add content to the report.
+  \item \code{\link{report_options}} to set options for most reports.
   \item \code{\link{options_fixed}} to set options for fixed-width output.
   \item \code{\link{add_content}} to add content to the report.
   \item \code{\link{write_report}} to write the report to the file system.
@@ -166,6 +167,7 @@ Other report:
 \code{\link{page_footer}()},
 \code{\link{page_header}()},
 \code{\link{print.report_spec}()},
+\code{\link{report_options}()},
 \code{\link{set_margins}()},
 \code{\link{title_header}()},
 \code{\link{titles}()},

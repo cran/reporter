@@ -220,7 +220,8 @@ create_table_pages_html <- function(rs, cntnt, lpg_rows) {
   # Get column widths
   widths_uom <- get_col_widths_variable(fdat, ts, labels, 
                                         rs$font, rs$font_size, rs$units, 
-                                        rs$gutter_width, merge_label_row) 
+                                        rs$gutter_width, merge_label_row,
+                                        allow_html_code = rs$allow_code) 
   # print("Widths UOM")
   # print(widths_uom)
   
@@ -228,14 +229,27 @@ create_table_pages_html <- function(rs, cntnt, lpg_rows) {
   # ..row variable. If too slow, may need to be rewritten in C
   fdat <- split_cells_variable(fdat, widths_uom, rs$font,
                                rs$font_size, rs$units, rs$output_type, 
-                               rs$char_width, ts)$data
+                               rs$char_width, ts, rs)$data
   # print("split_cells")
   # print(fdat)
   
+  # Decide whether to use page wrap. Follow the table setting first, then follow
+  # the report setting.
+  page_wrap_flag <- TRUE
+  if (!is.null(ts$page_wrap)){
+    page_wrap_flag <- ts$page_wrap
+  } else {  
+    page_wrap_flag <- rs$page_wrap
+  }
   
   # Break columns into pages
-  wraps <- get_page_wraps(rs$line_size, ts, 
-                          widths_uom, 0, control_cols)  # No gutter width for RTF
+  if (page_wrap_flag) {
+    wraps <- get_page_wraps(rs$line_size, ts, 
+                            widths_uom, 0, control_cols)  # No gutter width for RTF
+  } else {
+    wraps <- list(names(fdat))
+  }
+  
   # print("wraps")
   # print(wraps)
   
@@ -251,6 +265,11 @@ create_table_pages_html <- function(rs, cntnt, lpg_rows) {
   content_offset <- get_content_offsets_html(rs, ts, tmp_pi, 
                                              content_blank_row, pgby_cnt)
   
+  # Decide whether to use page break. Follow the table setting first, then follow
+  # the report setting.
+  if (is.null(ts$auto_page)){
+    ts$auto_page <- rs$auto_page
+  }
   
   # split rows
   splits <- get_splits_text(fdat, widths_uom, rs$body_line_count, 
@@ -684,13 +703,17 @@ get_table_header_html <- function(rs, ts, pi, ex_brdr = FALSE) {
                                  border_color = get_style(rs, "border_color"))
       
       # Split label strings if they exceed column width
-      tmp <- split_string_html(lbls[k], widths[k], rs$units)
+      tmp <- split_string_html(lbls[k], widths[k], rs$units,
+                               insert_line_break = rs$line_break,
+                               allow_html_code = rs$allow_code)
       
 
       if (ts$header_bold)
-        tstr <- paste0("<b>", encodeHTML(tmp$html), "</b>")
+        tstr <- paste0("<b>", encodeHTML(tmp$html, nbsp = rs$line_break,
+                                         allow_html_code = rs$allow_code), "</b>")
       else 
-        tstr <- encodeHTML(tmp$html)
+        tstr <- encodeHTML(tmp$html, nbsp = rs$line_break,
+                           allow_html_code = rs$allow_code)
 
       if (b == "") {
         ret[1] <- paste0(ret[1], "<td class=\"thdr ", ha[k], "\">", 
@@ -873,7 +896,9 @@ get_spanning_header_html <- function(rs, ts, pi, ex_brdr = FALSE) {
     for(k in seq_along(lbls)) {
       
       # Split label strings if they exceed column width
-      tmp <- split_string_html(lbls[k], widths[k], rs$units)
+      tmp <- split_string_html(lbls[k], widths[k], rs$units,
+                               insert_line_break = rs$line_break,
+                               allow_html_code = rs$allow_code)
       
       
       b <- get_cell_borders_html(length(lvls) - l + 1, k, length(lvls) + 1, 
@@ -926,9 +951,11 @@ get_spanning_header_html <- function(rs, ts, pi, ex_brdr = FALSE) {
       }
       
       if (s$bold[k])
-        tstr <- paste0("<b>", encodeHTML(vl), "</b>")
+        tstr <- paste0("<b>", encodeHTML(vl, nbsp = rs$line_break,
+                                         allow_html_code = rs$allow_code), "</b>")
       else 
-        tstr <- encodeHTML(vl)
+        tstr <- encodeHTML(vl, nbsp = rs$line_break,
+                           allow_html_code = rs$allow_code)
       
       # Check gap information
       gap <- ""
@@ -1212,7 +1239,8 @@ get_table_body_html <- function(rs, tbl, widths, algns, talgn, tbrdrs,
         if (all(class(vl) != "character"))
           vl <- as.character(vl)
         else 
-          vl <- encodeHTML(vl)
+          vl <- encodeHTML(vl, nbsp = rs$line_break,
+                           allow_html_code = rs$allow_code)
         
         if (merge_label_row  & flgs[i] %in% c("B", "A", "L")) {
           if (j == 1) {
@@ -1276,6 +1304,12 @@ get_table_body_html <- function(rs, tbl, widths, algns, talgn, tbrdrs,
       
     }
     
+    if (!rs$line_break) {
+      if (mxrw < tbl$..row[i]) {
+        mxrw <- tbl$..row[i]
+      }
+    }
+    
     rws[i] <- mxrw
     
     if (i == nrow(t))
@@ -1303,15 +1337,20 @@ get_table_body_html <- function(rs, tbl, widths, algns, talgn, tbrdrs,
 #' @description Have to check wrapping on a lot of files.  May have unintended 
 #' results.
 #' @noRd
-encodeHTML <- function(strng) {
+encodeHTML <- function(strng, nbsp = TRUE, allow_html_code = FALSE) {
   
   ret <- strng
   
-  ret <- gsub("&", "&amp;", ret , fixed = TRUE)
-  ret <- gsub(">", "&gt;", ret , fixed = TRUE)
-  ret <- gsub("<", "&lt;", ret , fixed = TRUE)
+  if (allow_html_code == FALSE) {
+    ret <- gsub("&", "&amp;", ret , fixed = TRUE)
+    ret <- gsub(">", "&gt;", ret , fixed = TRUE)
+    ret <- gsub("<", "&lt;", ret , fixed = TRUE)
+  }
+
   ret <- gsub("\n", "<br>", ret , fixed = TRUE)
-  ret <- gsub(" ", "&nbsp;", ret, fixed = TRUE)
+  if (nbsp & allow_html_code == FALSE) {
+    ret <- gsub(" ", "&nbsp;", ret, fixed = TRUE)
+  }
   if (ret == "")
     ret <- "&nbsp;"
   

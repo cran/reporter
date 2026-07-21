@@ -1,3 +1,18 @@
+# reporter 1.4.8
+
+* Added `report_options()` function to control various features of the report.
+This function has the following parameters:
+  - "allow_code" to insert codes directly into documents. Works for RTF and HTML.
+  - "line_break" to turn off automatic insertion of line breaks.
+  - "line_count" to set the number of lines on a page.
+  - "page_wrap" to turn off automatic page wrapping.
+  - "auto_page" to turn off automatic page breaking.
+  - "title_block" to insert a title paragraph in RTF outputs instead of a title
+table.  This feature makes the output more compatible with some editors.
+* Added "page_wrap" and "auto_page" parameters to `create_table()` function.
+* Automatically wrap multiple lines of titles, footnotes, headers, footers, 
+and page by values for TXT files.
+
 # reporter 1.4.7
 
 * Added "group_cohesion" and "break_label" parameters to `define()` function. 
