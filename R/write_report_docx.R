@@ -517,20 +517,20 @@ write_content_docx <- function(rs, hdr, body, pt) {
 
 #' @description Could be consolidated with RTF
 #' @noRd
-update_page_numbers_docx <- function(path, tpg) {
-  
-  
-  lns <- readLines(path, encoding = "UTF-8")
-  
-  lns <- gsub("[tpg]", tpg, lns, fixed = TRUE)
-  
-  f <- file(path, open = "w+", encoding = "native.enc")
-  
-  writeLines(lns, con = f, useBytes = TRUE)
-  
-  close(f)
-  
-}
+# update_page_numbers_docx <- function(path, tpg) {
+#   
+#   
+#   lns <- readLines(path, encoding = "UTF-8")
+#   
+#   lns <- gsub("[tpg]", tpg, lns, fixed = TRUE)
+#   
+#   f <- file(path, open = "w+", encoding = "native.enc")
+#   
+#   writeLines(lns, con = f, useBytes = TRUE)
+#   
+#   close(f)
+#   
+# }
 
 update_page_docx <- function(lns, pg, tpg = NULL) {
   
@@ -628,6 +628,15 @@ page_setup_docx <- function(rs) {
     conv <- 566.9291
   }
   
+  # Apply user's line height if it exists
+  if (!is.null(rs$user_line_height)) {
+    rs$row_height <- rs$user_line_height
+    rs$line_height <- rs$user_line_height
+  } else {
+    rs$row_height <- rh
+    rs$line_height <- rh
+  }
+  
   # A zero height paragraph to break between tables.
   # Otherwise, Word will treat as one table and the column
   # widths will be messed up.
@@ -638,26 +647,46 @@ page_setup_docx <- function(rs) {
               				</w:rPr>
               			</w:pPr></w:p>\n'
   
-  rs$blank_row <- paste0('<w:p><w:pPr>
-              				<w:spacing w:after="8" w:line="', round(rh * conv) + radj,
-              				'" w:lineRule="auto"/>
+  if (tolower(rs$font) != "simsun") {
+    rs$blank_row <- paste0('<w:p><w:pPr>
+              				<w:spacing w:after="8" w:line="', round(rs$row_height * conv) + radj,
+                           '" w:lineRule="auto"/>
               				<w:contextualSpacing/>
               				<w:rPr>
               					<w:sz w:val="', rs$font_size * 2, '"/>
               				</w:rPr>
               			</w:pPr></w:p>\n')
-  
-  # This is for adding extra blanks after the table, left more buffer to prevent from
-  # unexpected page break
-  rs$blank_row_below <- paste0('<w:p><w:pPr>
-              				<w:spacing w:after="8" w:line="', round(rh * conv) + radj - 3,
-                         '" w:lineRule="auto"/>
+    
+    # This is for adding extra blanks after the table, left more buffer to prevent from
+    # unexpected page break
+    rs$blank_row_below <- paste0('<w:p><w:pPr>
+              				<w:spacing w:after="8" w:line="', round(rs$row_height * conv) + radj - 3,
+                                 '" w:lineRule="auto"/>
               				<w:contextualSpacing/>
               				<w:rPr>
               					<w:sz w:val="', rs$font_size * 2, '"/>
               				</w:rPr>
               			</w:pPr></w:p>\n')
-  
+  } else {
+    # For Chinese, use the exact height without auto-adjustment by font size
+    rs$blank_row <- paste0('<w:p><w:pPr>
+              				<w:spacing w:before="0" w:after="0" w:line="', round(rs$row_height * conv),
+                           '" w:lineRule="exact"/>
+              				<w:rPr>
+              					<w:sz w:val="', 1, '"/>
+              				</w:rPr>
+              			</w:pPr></w:p>\n')
+    
+    
+    rs$blank_row_below <- paste0('<w:p><w:pPr>
+              				<w:spacing w:before="0" w:after="0" w:line="', round(rs$row_height * conv),
+                                 '" w:lineRule="exact"/>
+              				<w:rPr>
+              					<w:sz w:val="', 1, '"/>
+              				</w:rPr>
+              			</w:pPr></w:p>\n')
+  }
+
   rs$cell_margin <- paste0('<w:tblCellMar>
                            <w:left w:w="32" w:type="dxa"/>
                            <w:right w:w="32" w:type="dxa"/>
@@ -669,9 +698,6 @@ page_setup_docx <- function(rs) {
   rs$relIndex <- 9
   
   rs$twip_conversion <- conv
-  
-  rs$row_height <- rh
-  rs$line_height <- rh
   rs$char_width <- cw
   rs$base_indent <- 130
   
@@ -730,19 +756,19 @@ page_setup_docx <- function(rs) {
   
 
   if (is.null(rs$user_line_count)) {
-    rs$line_count <- round(rs$content_size[[1]] / rh) 
+    rs$line_count <- round(rs$content_size[[1]] / rs$row_height) 
   } else
     rs$line_count <- rs$user_line_count
 
-  if (debug) {
-    print(paste("Font Size:", rs$font_size))
-    print(paste("Content Height:", rs$content_size[[1]]))
-    print(paste("Content Width:", rs$content_size[[2]]))
-    print(paste("Line Count:", rs$line_count))
-    print(paste("Line Height:", rs$line_height))
-    print(paste("Gutter Width:", rs$gutter_width))
-    print(paste("Char Width:", rs$char_width))
-  }
+  # if (debug) {
+  #   print(paste("Font Size:", rs$font_size))
+  #   print(paste("Content Height:", rs$content_size[[1]]))
+  #   print(paste("Content Width:", rs$content_size[[2]]))
+  #   print(paste("Line Count:", rs$line_count))
+  #   print(paste("Line Height:", rs$line_height))
+  #   print(paste("Gutter Width:", rs$gutter_width))
+  #   print(paste("Char Width:", rs$char_width))
+  # }
   
   
   # Create temp directory structure for docx file
@@ -762,25 +788,25 @@ page_setup_docx <- function(rs) {
   # DOCX would still have one blank row on top even no page headers
   # rs$page_template_header_count <- max(c(1, rs$page_template_header_count))
   
-  if (debug)
-    print(paste("Page Template Header Count:", rs$page_template_header_count))
+  # if (debug)
+  #   print(paste("Page Template Header Count:", rs$page_template_header_count))
 
   rs$page_template_footer_count <- sum(pt$footnotes$lines_content, 
                                        pt$page_footer$lines_content)
-  if (debug)
-    print(paste("Page Template Footer Count:", rs$page_template_footer_count))
+  # if (debug)
+  #   print(paste("Page Template Footer Count:", rs$page_template_footer_count))
 
   rs$page_template_row_count <- rs$page_template_header_count +
     rs$page_template_footer_count
-  if (debug)
-    print(paste("Page Template Row Count:", rs$page_template_row_count))
+  # if (debug)
+  #   print(paste("Page Template Row Count:", rs$page_template_row_count))
 
   # Body line count is the number of rows available for content on each page
   # - 1 adjustment needed for footer buffer
   rs$body_line_count <- rs$line_count - rs$page_template_row_count - 1
 
-  if (debug)
-    print(paste0("Body Line Count: ", rs$body_line_count))
+  # if (debug)
+  #   print(paste0("Body Line Count: ", rs$body_line_count))
   
   return(rs)
 }
@@ -791,51 +817,65 @@ get_rh <- function(font, font_size) {
   
   if (font_size == 8) {
     
-    if (tolower(font) == "times")
+    if (tolower(font) == "times") {
       rh <- 0.141  
-    else if (tolower(font) == "arial")
+    } else if (tolower(font) == "arial") {
       rh <- 0.141 
-    else 
+    } else if (tolower(font) == "simsun") {
+      rh <- 0.145
+    } else {
       rh <- 0.141
+    }
     
     
   } else if (font_size == 9) {
     
-    if (tolower(font) == "times")
+    if (tolower(font) == "times") {
       rh <- 0.156
-    else if (tolower(font) == "arial")
+    } else if (tolower(font) == "arial") {
       rh <- 0.156 
-    else 
+    } else if (tolower(font) == "simsun") {
+      rh <- 0.162
+    } else {
       rh <- 0.155 
+    }
     
   } else if (font_size == 10) {
     
-    if (tolower(font) == "times")
-      rh <- 0.178  
-    else if (tolower(font) == "arial")
+    if (tolower(font) == "times") {
+      rh <- 0.178
+    } else if (tolower(font) == "arial") {
       rh <- 0.178 #0.182  # 0.1585366
-    else
+    } else if (tolower(font) == "simsun") {
+      rh <- 0.179
+    } else {
       rh <- 0.175 #0.182  # 0.1585366
-    
+    }
+      
   } else if (font_size == 11) {
     
-    if (tolower(font) == "times")
+    if (tolower(font) == "times") {
       rh <- 0.195
-    else if (tolower(font) == "arial")
+    } else if (tolower(font) == "arial") {
       rh <- 0.195 # 0.168
-    else 
+    } else if (tolower(font) == "simsun") {
+      rh <- 0.199
+    } else {
       rh <- 0.192 # 0.168
-    
+    }
     
   } else if (font_size == 12) {
     
     # inches 
-    if (tolower(font) == "times")
+    if (tolower(font) == "times") {
       rh <- 0.212  # 1911765 
-    else if (tolower(font) == "arial")
+    } else if (tolower(font) == "arial") {
       rh <- 0.212 #0.212  # 1911765 
-    else 
+    } else if (tolower(font) == "simsun") {
+      rh <- 0.217
+    } else {
       rh <- 0.212  # 1911765 
+    }
     
   } else if (font_size == 14) {
     
@@ -853,72 +893,72 @@ get_rh <- function(font, font_size) {
 }
 
 
-get_rh2 <- function(font, font_size) {
-  
-  rh <- 0
-  
-  if (font_size == 8) {
-    
-    if (tolower(font) == "times")
-      rh <- 0.144  
-    else if (tolower(font) == "arial")
-      rh <- 0.144 
-    else 
-      rh <- 0.144
-    
-    
-  } else if (font_size == 9) {
-    
-    if (tolower(font) == "times")
-      rh <- 0.166
-    else if (tolower(font) == "arial")
-      rh <- 0.166 
-    else 
-      rh <- 0.1625 
-    
-  } else if (font_size == 10) {
-    
-    if (tolower(font) == "times")
-      rh <- 0.185  
-    else if (tolower(font) == "arial")
-      rh <- 0.185 #0.182  # 0.1585366
-    else
-      rh <- 0.185 #0.182  # 0.1585366
-    
-  } else if (font_size == 11) {
-    
-    if (tolower(font) == "times")
-      rh <- 0.208
-    else if (tolower(font) == "arial")
-      rh <- 0.208 # 0.168
-    else 
-      rh <- 0.203 # 0.168
-
-    
-  } else if (font_size == 12) {
-    
-    # inches 
-    if (tolower(font) == "times")
-      rh <- 0.23  # 1911765 
-    else if (tolower(font) == "arial")
-      rh <- 0.23 #0.212  # 1911765 
-    else 
-      rh <- 0.23  # 1911765 
-
-  } else if (font_size == 14) {
-    
-    # inches 
-    if (tolower(font) == "times")
-      rh <- 0.25 
-    else if (tolower(font) == "arial")
-      rh <- 0.25 
-    else 
-      rh <- 0.25 
-    
-  }
-  
-  return(rh)
-}
+# get_rh2 <- function(font, font_size) {
+#   
+#   rh <- 0
+#   
+#   if (font_size == 8) {
+#     
+#     if (tolower(font) == "times")
+#       rh <- 0.144  
+#     else if (tolower(font) == "arial")
+#       rh <- 0.144 
+#     else 
+#       rh <- 0.144
+#     
+#     
+#   } else if (font_size == 9) {
+#     
+#     if (tolower(font) == "times")
+#       rh <- 0.166
+#     else if (tolower(font) == "arial")
+#       rh <- 0.166 
+#     else 
+#       rh <- 0.1625 
+#     
+#   } else if (font_size == 10) {
+#     
+#     if (tolower(font) == "times")
+#       rh <- 0.185  
+#     else if (tolower(font) == "arial")
+#       rh <- 0.185 #0.182  # 0.1585366
+#     else
+#       rh <- 0.185 #0.182  # 0.1585366
+#     
+#   } else if (font_size == 11) {
+#     
+#     if (tolower(font) == "times")
+#       rh <- 0.208
+#     else if (tolower(font) == "arial")
+#       rh <- 0.208 # 0.168
+#     else 
+#       rh <- 0.203 # 0.168
+# 
+#     
+#   } else if (font_size == 12) {
+#     
+#     # inches 
+#     if (tolower(font) == "times")
+#       rh <- 0.23  # 1911765 
+#     else if (tolower(font) == "arial")
+#       rh <- 0.23 #0.212  # 1911765 
+#     else 
+#       rh <- 0.23  # 1911765 
+# 
+#   } else if (font_size == 14) {
+#     
+#     # inches 
+#     if (tolower(font) == "times")
+#       rh <- 0.25 
+#     else if (tolower(font) == "arial")
+#       rh <- 0.25 
+#     else 
+#       rh <- 0.25 
+#     
+#   }
+#   
+#   return(rh)
+# }
 
 #' @description Replace page number in title and footnote
 #' @details  Replace page number in title and footnote

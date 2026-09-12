@@ -350,11 +350,13 @@ create_table <- function(x, show_cols = "all", use_attributes = "all",
 #' parameter.
 #' @param width The width of the column in the specified units of measure.
 #' The units of measure are specified on the \code{units} parameter of the
-#' \code{\link{create_report}} function.  If no width is supplied, the
-#' \code{\link{write_report}} function will assign a default width based on the 
-#' width of the column data and the label.  \code{write_report} will not set a 
-#' column width less than the width of the largest word in the data or label.
-#' In other words, \code{write_report} will not break words. 
+#' \code{\link{create_report}} function. Input can be a numeric value or a 
+#' percentage in a string such like \code{width = 3} or \code{width = "20\%"}.
+#' If no width is supplied, the \code{\link{write_report}} function will assign 
+#' a default width based on the width of the column data and the label.  
+#' \code{write_report} will not set a column width less than the width of the 
+#' largest word in the data or label. In other words, \code{write_report} will 
+#' not break words. 
 #' @param visible Whether or not the column should be visible on the report.
 #' This parameter can be used as a simple way to drop columns from the report.
 #' @param n The n value to place in the "N=" header label.  Formatting for
@@ -364,9 +366,11 @@ create_table <- function(x, show_cols = "all", use_attributes = "all",
 #' variable.  Valid values are TRUE or FALSE.  Default is FALSE.
 #' @param blank_before Whether to place a blank row before unique values of this
 #' variable.  Valid values are TRUE or FALSE.  Default is FALSE.
-#' @param dedupe Whether to dedupe the values for this variable.  Variables
-#' that are deduped only show the value on the first row of each group.  This 
-#' option is commonly used for grouping variables.
+#' @param dedupe Whether to dedupe the values for this variable. Valid values are
+#' TRUE, FALSE, or a vector a variable names. TRUE will dedupe the defined variable
+#' only by the values in that variable.  To dedupe by the values of multiple variables,
+#' pass a vector of variable names, i.e. \code{dedupe = c('var1', 'var2')}.  
+#' Note that deduping by invisible variables is allowed.   
 #' @param id_var Whether this variable should be considered an ID variable.
 #' ID variables are retained on each page when the page is wrapped. ID variables
 #' are also moved to the far left of the page.
@@ -524,6 +528,13 @@ define <- function(x, vars, label = NULL, format = NULL,
     # Convert list to vector
     vars_c <- unlist(vars_c)
     
+  }
+  
+  # Error Detection of Input Parameters
+  if (!is.null(width)) {
+    if (!is.numeric(width) & !grepl("^[0-9]+(\\.[0-9]+)?%$", width)) {
+      stop("`width` must be a numeric value or a character value with '%', such as '10.5%'.")
+    }
   }
   
 

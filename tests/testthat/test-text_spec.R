@@ -12,8 +12,9 @@ test_that("create_text parameter checks work as expected.", {
   
   expect_error(create_text("Hello", width = - 4))
                
-               
+  expect_error(create_text("Hello", align = NULL, width = "4"))          
   
+  expect_error(create_text("Hello", borders = "no"))      
 })
 
 test_that("text print() function works as expected.", {
@@ -95,6 +96,17 @@ test_that("split_text() works as expected.", {
   expect_equal(res$lines[[2]], 4)
   expect_equal(res$lines[[3]], 4)
   
+})
+
+test_that("split_text() works with Chinese as expected.", {
+  
+  cnt <- paste0("亚组 - 这是一段很长的字，预计会占两行以上。用来测试空白行的宽度是否需要缩减。切割文字的函數需 修改，分割不需要用空白。")
+  
+  
+  res <- split_text(cnt, 30, 1, "Simsun", 10, "inches")
+  
+  res
+  expect_equal(length(res$text[[1]]), 9)
 })
 
 

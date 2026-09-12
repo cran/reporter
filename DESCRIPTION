@@ -1,7 +1,7 @@
 Package: reporter
 Type: Package
 Title: Creates Statistical Reports
-Version: 1.4.8
+Version: 1.4.9
 Authors@R: c( 
     person("David", "Bosak", email = "dbosak01@gmail.com", role = c("aut", "cre")),
     person("Bill", "Huang", email = "Bill.Huang@Toastmasters.org.tw", role = c("aut")),
@@ -32,10 +32,10 @@ Suggests: testthat, magrittr, dplyr, tidyr, readr, knitr, rmarkdown,
         patchwork, tools
 Imports: fmtr(>= 1.5.8), stringi, crayon, jpeg, graphics, grDevices,
         zip, withr, glue
-RoxygenNote: 7.3.3
 VignetteBuilder: knitr
+Config/roxygen2/version: 8.1.0
 NeedsCompilation: no
-Packaged: 2026-07-21 03:28:09 UTC; dbosa
+Packaged: 2026-09-12 14:10:08 UTC; dbosa
 Author: David Bosak [aut, cre],
   Bill Huang [aut],
   Kevin Kramer [ctb],
@@ -43,4 +43,4 @@ Author: David Bosak [aut, cre],
   Raphael Huang [ctb],
   Archytas Clinical Solutions [cph]
 Repository: CRAN
-Date/Publication: 2026-07-21 04:30:02 UTC
+Date/Publication: 2026-09-12 14:40:14 UTC

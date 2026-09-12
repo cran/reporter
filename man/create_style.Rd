@@ -31,7 +31,7 @@ create_style(
 }
 \arguments{
 \item{font_name}{The name of the font to use on the report.  Valid values
-are "Courier", "Arial", or "Times".  The default is "Courier".}
+are "Courier", "Arial", "Times", or "SimSun".  The default is "Courier".}
 
 \item{font_size}{The default font size to use for the report.  This font
 size will be used for all text, unless overridden by another font size 
@@ -192,9 +192,9 @@ write_report(rpt)
 # file.show(tmp)
 }
 \seealso{
-Other styles: 
-\code{\link{add_style}()},
-\code{\link{get_theme}()},
-\code{\link{print.style_spec}()}
+Other styles:
+\code{\link[=add_style]{add_style()}},
+\code{\link[=get_theme]{get_theme()}},
+\code{\link[=print.style_spec]{print.style_spec()}}
 }
 \concept{styles}

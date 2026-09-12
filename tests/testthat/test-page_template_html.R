@@ -141,7 +141,43 @@ test_that("get_page_header_html works as expected.", {
   ph
 
   expect_equal(ph$lines, 3) 
+  
+  # Output error as expected
+  image_path <- "data/logo.jpg"
+  
+  rpt4 <- create_report("", font = "Arial", font_size = 12) %>%
+    header_image(image_path, height = 0.5, width = 0.8, align = "left")
+  
+  expect_error(
+    ret <- get_page_header_html(rpt4),
+    "`page_header` must be used when using `header_image`."
+  )
+  
+  rpt4 <- create_report("", font = "Arial", font_size = 12) %>%
+    header_image(image_path, height = 0.5, width = 4, align = "left") %>%
+    header_image(image_path, height = 0.5, width = 4, align = "center") %>%
+    header_image(image_path, height = 0.5, width = 4, align = "right") %>%
+    page_header(width = c(4,4,4))
+  
+  expect_error(
+    ret <-  page_setup_html(rpt4),
+    "Total width of page header 12 inches cannot be greater than content width 9 inches."
+  )
 
+  # Image
+  image_path <- "data/logo.jpg"
+  
+  rpt5 <- create_report("", font = "Arial", font_size = 12) %>%
+    header_image(image_path, height = 0.5, width = 0.8, align = "left") %>%
+    header_image(image_path, height = 0.5, width = 0.8, align = "center") %>%
+    header_image(image_path, height = 0.5, width = 0.8, align = "right") %>%
+    page_header()
+  
+  rpt5$modified_path <- tempfile(fileext = ".html")
+  
+  ret <-  page_setup_html(rpt5)
+  
+  expect_equal(ret$page_template$page_header$lines, 3)
 })
 
 
@@ -162,6 +198,42 @@ test_that("get_page_footer_html works as expected.", {
 
   expect_equal(pf$lines, 2)
   
+  # Output error as expected
+  image_path <- "data/logo.jpg"
+  
+  rpt4 <- create_report("", font = "Arial", font_size = 12) %>%
+    footer_image(image_path, height = 0.5, width = 0.8, align = "left")
+  
+  expect_error(
+    ret <- get_page_footer_html(rpt4),
+    "`page_footer` must be used when using `footer_image`."
+  )
+  
+  rpt4 <- create_report("", font = "Arial", font_size = 12) %>%
+    footer_image(image_path, height = 0.5, width = 4, align = "left") %>%
+    footer_image(image_path, height = 0.5, width = 4, align = "center") %>%
+    footer_image(image_path, height = 0.5, width = 4, align = "right") %>%
+    page_footer(width = c(4,4,4))
+  
+  expect_error(
+    ret <-  page_setup_html(rpt4),
+    "Total width of page footer 12 inches cannot be greater than content width 9 inches."
+  )
+  
+  # Image
+  image_path <- "data/logo.jpg"
+  
+  rpt5 <- create_report("", font = "Arial", font_size = 12) %>%
+    footer_image(image_path, height = 0.5, width = 0.8, align = "left") %>%
+    footer_image(image_path, height = 0.5, width = 0.8, align = "center") %>%
+    footer_image(image_path, height = 0.5, width = 0.8, align = "right") %>%
+    page_footer()
+  
+  rpt5$modified_path <- tempfile(fileext = ".html")
+  
+  ret <-  page_setup_html(rpt5)
+  
+  expect_equal(ret$page_template$page_footer$lines, 3)
 })
 
 
@@ -204,79 +276,28 @@ test_that("get_cell_borders_html works as expected.", {
   
 })
 
-# 
-# test_that("rtf2-2: get_cell_borders works as expected.", {
-#   
-#   
-#   expect_equal(get_cell_borders(1, 1, 4, 4, c("all")),
-#                "\\clbrdrt\\brdrs\\clbrdrb\\brdrs\\clbrdrl\\brdrs\\clbrdrr\\brdrs")
-#   
-#   expect_equal(get_cell_borders(4, 1, 4, 4, c("all")),
-#                "\\clbrdrt\\brdrs\\clbrdrb\\brdrs\\clbrdrl\\brdrs\\clbrdrr\\brdrs")
-#   
-#   expect_equal(get_cell_borders(1, 1, 4, 4, c("outside")),
-#                "\\clbrdrt\\brdrs\\clbrdrl\\brdrs")
-#   
-#   expect_equal(get_cell_borders(4, 1, 4, 4, c("outside")),
-#                "\\clbrdrb\\brdrs\\clbrdrl\\brdrs")
-#   
-#   expect_equal(get_cell_borders(2, 2, 4, 4, c("outside")),
-#                "")
-#   
-#   expect_equal(get_cell_borders(2, 4, 4, 4, c("right")),
-#                "\\clbrdrr\\brdrs")
-#   
-#   expect_equal(get_cell_borders(2, 4, 4, 4, c("inside")),
-#                "\\clbrdrt\\brdrs\\clbrdrb\\brdrs\\clbrdrl\\brdrs")
-#   
-#   expect_equal(get_cell_borders(2, 4, 4, 4, "all", "B"), 
-#                "\\clbrdrt\\brdrs\\clbrdrb\\brdrs\\clbrdrr\\brdrs")    
-#   
-#   expect_equal(get_cell_borders(2, 3, 4, 4, "all", "B"), 
-#                "\\clbrdrt\\brdrs\\clbrdrb\\brdrs")  
-#   
-#   expect_equal(get_cell_borders(2, 1, 4, 4, "all", "B"), 
-#                "\\clbrdrt\\brdrs\\clbrdrb\\brdrs\\clbrdrl\\brdrs") 
-#   
-# })
-# 
-# 
-# test_that("page_template_rtf works as expected.", {
-#   
-#   
-#   tbl <- create_table(mtcars) %>% 
-#     page_by(cyl, "Cylinders:")
-#   
-#   rpt <- create_report("", font = "Arial", font_size = 12) %>%
-#     page_header("left", "right") %>% 
-#     titles("Hello") %>%
-#     footnotes("Goodbye") %>% 
-#     add_content(tbl) %>% 
-#     page_footer("left", right = "right")
-#   
-#   
-#   rpt <- page_setup_rtf(rpt)
-#   
-#   
-#   
-#   res <- page_template_rtf(rpt)
-#   
-#   res
-#   expect_equal(res$lines, 6)
-#   expect_equal(res$titles$lines, 2)
-#   
-#   
-# })
-# 
-# test_that("get_page_numbers_rtf works as expected.", {
-#   
-#   res <- get_page_numbers_rtf("Page [pg] of [tpg]")
-#   
-#   res
-#   expect_equal(res, "Page \\chpgn  of {\\field{\\*\\fldinst  NUMPAGES }}")
-#   
-#   
-# })
-# 
-# 
-# 
+test_that("page_replace_html works as expected.", {
+  dat <- iris
+  
+  tbl <- create_table(dat, borders = "outside") %>%
+    titles("Table Title: Page [pg] of [tpg]", "Second table title") %>%
+    footnotes("Table footnote: Page [pg] of [tpg]", "Second table footnote")
+  
+  rpt <- create_report("", output_type = "html", font = "Arial",
+                       font_size = 12, orientation = "landscape") %>%
+    set_margins(top = 1, bottom = 1) %>%
+    report_options(allow_code = T) %>%
+    add_content(tbl) %>%
+    add_content(tbl) %>%
+    titles("Report Title: Page [pg] of [tpg]") %>%
+    footnotes("Report footnote: Page [pg] of [tpg]", borders = "none") %>%
+    page_header("Header: Page [pg] of [tpg]") %>%
+    page_footer("Footer: Page [pg] of [tpg]")
+  
+  rs <- page_setup_html(rpt)
+  
+  ret <- page_replace_html("Report Title: Page [pg] of [tpg]", rs, "titles", 4, rs)
+  
+  expect_equal(ret, "Report Title: Page 5 of [tpg]")
+})
+

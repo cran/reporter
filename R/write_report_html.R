@@ -87,8 +87,14 @@ get_html_document <- function(rs) {
   conv <- rs$twip_conversion
   
   fnt <- rs$font
-  if (tolower(rs$font) == "times")
+  if (tolower(rs$font) == "times") {
     fnt <- "Times New Roman"
+  } else if (tolower(rs$font) == "courier") {
+    fnt <- "Courier New"
+  } else if (tolower(rs$font) == "simsun") {
+    fnt <- '"SimSun", "\u5b8b\u4f53", "PingFang SC", "STSong", "Songti SC", serif' 
+  }
+    
   
   u <- rs$units
   if (rs$units == "inches")
@@ -97,7 +103,7 @@ get_html_document <- function(rs) {
   # Prepare header
   ret[length(ret) + 1] <- paste0("<!DOCTYPE html>\n",
                                  "<html>\n", "<head>")
-  
+  ret[length(ret) + 1] <- '<meta charset="UTF-8">'
   ret[length(ret) + 1] <- "<style>"
   ret[length(ret) + 1] <- paste0("@media print{\n",
                                  "@page {size:", rs$orientation, ";",
@@ -565,8 +571,18 @@ page_setup_html <- function(rs) {
     gtr <- ccm(gtr)
   }
   
-  rs$row_height <- rh
-  rs$line_height <- rh
+  # Apply user's line height if it exists
+  if (!is.null(rs$user_line_height)) {
+    rs$row_height <- rs$user_line_height
+    rs$line_height <- rs$user_line_height
+    rs$blank_row <- sprintf("<div style=\"height: %s%s; clear: both;\"></div>",
+                            rs$user_line_height,
+                            ifelse(rs$units == "inches", "in", rs$units))
+  } else {
+    rs$row_height <- rh
+    rs$line_height <- rh
+    rs$blank_row <- "<br>"
+  }
   rs$char_width <- cw
   
   # Content size is the page size minus margins, in units of measure
@@ -583,19 +599,19 @@ page_setup_html <- function(rs) {
                                units_html(rs$units), ";", "\"></div>")
 
   if (is.null(rs$user_line_count)) {
-    rs$line_count <- round(rs$content_size[[1]] / rh) 
+    rs$line_count <- round(rs$content_size[[1]] / rs$row_height) 
   } else
     rs$line_count <- rs$user_line_count
 
-  if (debug) {
-    print(paste("Font Size:", rs$font_size))
-    print(paste("Content Height:", rs$content_size[[1]]))
-    print(paste("Content Width:", rs$content_size[[2]]))
-    print(paste("Line Count:", rs$line_count))
-    print(paste("Line Height:", rs$line_height))
-    print(paste("Gutter Width:", rs$gutter_width))
-    print(paste("Char Width:", rs$char_width))
-  }
+  # if (debug) {
+  #   print(paste("Font Size:", rs$font_size))
+  #   print(paste("Content Height:", rs$content_size[[1]]))
+  #   print(paste("Content Width:", rs$content_size[[2]]))
+  #   print(paste("Line Count:", rs$line_count))
+  #   print(paste("Line Height:", rs$line_height))
+  #   print(paste("Gutter Width:", rs$gutter_width))
+  #   print(paste("Char Width:", rs$char_width))
+  # }
   # 
   # Get page template
   pt <- page_template_html(rs)
@@ -606,22 +622,22 @@ page_setup_html <- function(rs) {
   # Include all the rows associated with the page template
   rs$page_template_header_count <- sum(pt$page_header$lines, pt$titles$lines,
                                        pt$title_hdr$lines, pt$page_by$lines)
-  if (debug)
-    print(paste("Page Template Header Count:", rs$page_template_header_count))
+  # if (debug)
+  #   print(paste("Page Template Header Count:", rs$page_template_header_count))
 
   rs$page_template_footer_count <- sum(pt$footnotes$lines, pt$page_footer$lines)
-  if (debug)
-    print(paste("Page Template Footer Count:", rs$page_template_footer_count))
+  # if (debug)
+  #   print(paste("Page Template Footer Count:", rs$page_template_footer_count))
 
   rs$page_template_row_count <- rs$page_template_header_count +
     rs$page_template_footer_count
-  if (debug)
-    print(paste("Page Template Row Count:", rs$page_template_row_count))
+  # if (debug)
+  #   print(paste("Page Template Row Count:", rs$page_template_row_count))
 
   # Body line count is the number of rows available for content on each page
   rs$body_line_count <- rs$line_count - rs$page_template_row_count
-  if (debug)
-    print(paste0("Body Line Count: ", rs$body_line_count))
+  # if (debug)
+  #   print(paste0("Body Line Count: ", rs$body_line_count))
   
   return(rs)
 }
@@ -663,7 +679,7 @@ page_replace_html <- function(pg, target, type = "titles", page, rs = NULL) {
           }
           
           raw_title <- encodeHTML(v_string, nbsp = rs$line_break,
-                                  allow_html_code = rs$allow_code)
+                                  allow_html_code = rs$allow_code, font = rs$font)
           new_title <- update_page(raw_title, page)
           pg <- gsub(raw_title, new_title, pg, fixed = TRUE)
         }

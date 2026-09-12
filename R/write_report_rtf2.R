@@ -66,8 +66,12 @@ get_rtf_document <- function(rs) {
   conv <- rs$twip_conversion
   
   fnt <- rs$font
-  if (tolower(rs$font) == "times")
+  if (tolower(rs$font) == "times") {
     fnt <- "Times New Roman"
+  } else if (tolower(rs$font) == "courier") {
+    fnt <- "Courier New"
+  }
+    
   
   # Prepare header
   ret[length(ret) + 1] <- paste0("{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 ", fnt , ";}}")
@@ -457,6 +461,12 @@ page_setup_rtf <- function(rs) {
   } else if (rs$font_size == 9) {
     rh <- 244 #round(.165 * 1440) # 225
     lh <- 244 #round(.165 * 1440)  
+    
+    if (tolower(rs$font) == "simsun") {
+      rh <- 246
+      ln <- 246
+    }
+    
     #pb <- "\\page\\line" #fs1\\sl0\\par\\pard\\fs20"
     pb <-  "{\\pard\\pagebb\\fs1\\sl0\\par}\\fs18"
     if (tolower(rs$font) == "courier")
@@ -512,12 +522,19 @@ page_setup_rtf <- function(rs) {
   }
   
   rs$twip_conversion <- conv
-  rs$row_height <- rh
-  rs$line_height <- lh
+  
+  if (!is.null(rs$user_line_height)) {
+    rs$row_height <- round(rs$user_line_height * conv)
+    rs$line_height <- round(rs$user_line_height * conv)
+  } else {
+    rs$row_height <- rh
+    rs$line_height <- lh
+  }
+
   rs$char_width <- cw
   rs$line_size <- rs$content_size[["width"]]
   rs$cell_padding <- cp
-  rs$spacing_multiplier <- get_spacing_multiplier(rs$font_size)
+  rs$spacing_multiplier <- get_spacing_multiplier(rs$font_size, rs)
   rs$page_break_rtf <- paste0(pb, rs$spacing_multiplier)
   rs$border_height <- 15
   
@@ -544,18 +561,18 @@ page_setup_rtf <- function(rs) {
   if (is.null(rs$user_line_count)) {
     # There is one row above the page footer that is not printable.
     # Therefore adjust by 1.
-    rs$line_count <- floor(rs$content_size[[1]] * conv / rh) - 1
+    rs$line_count <- floor(rs$content_size[[1]] * conv / rs$row_height) - 1
   } else 
     rs$line_count <- rs$user_line_count
   
-  if (debug) {
-    print(paste("Content Height:", rs$content_size[[1]]))
-    print(paste("Content Width:", rs$content_size[[2]]))
-    print(paste("Line Count:", rs$line_count))
-    print(paste("Line Height:", rs$line_height))
-    print(paste("Gutter Width:", rs$gutter_width))
-    print(paste("Char Width:", rs$char_width))
-  }
+  # if (debug) {
+  #   print(paste("Content Height:", rs$content_size[[1]]))
+  #   print(paste("Content Width:", rs$content_size[[2]]))
+  #   print(paste("Line Count:", rs$line_count))
+  #   print(paste("Line Height:", rs$line_height))
+  #   print(paste("Gutter Width:", rs$gutter_width))
+  #   print(paste("Char Width:", rs$char_width))
+  # }
   
   # Get page template
   pt <- page_template_rtf(rs)
@@ -565,41 +582,42 @@ page_setup_rtf <- function(rs) {
   # Small adjustment by one line height
   # This gets used to determine lines on a page.
   rs$body_size <- 
-    c(height = floor((rs$content_size[[1]] * conv) - pt$page_header$twips - pt$page_footer$twips - lh), 
+    c(height = floor((rs$content_size[[1]] * conv) - pt$page_header$twips - 
+                       pt$page_footer$twips - rs$line_height), 
       width = floor(rs$content_size[[2]] * conv))
   
-  if (debug) {
-    print(paste("Body Height:", rs$body_size[[1]]))
-    print(paste("Body Width:", rs$body_size[[2]]))
-  }
+  # if (debug) {
+  #   print(paste("Body Height:", rs$body_size[[1]]))
+  #   print(paste("Body Width:", rs$body_size[[2]]))
+  # }
   
   
   # Get the page template row count
   # Include all the rows associated with the page template
   rs$page_template_header_count <- sum(pt$page_header$lines, pt$titles$lines, 
     pt$title_hdr$lines, pt$page_by$lines)
-  if (debug)
-    print(paste("Page Template Header Count:", rs$page_template_header_count))
+  # if (debug)
+  #   print(paste("Page Template Header Count:", rs$page_template_header_count))
   
   rs$page_template_footer_count <- sum(pt$footnotes$lines, pt$page_footer$lines)
-  if (debug)
-    print(paste("Page Template Footer Count:", rs$page_template_footer_count))
+  # if (debug)
+  #   print(paste("Page Template Footer Count:", rs$page_template_footer_count))
   
   rs$page_template_row_count <- rs$page_template_header_count + 
     rs$page_template_footer_count
-  if (debug)
-    print(paste("Page Template Row Count:", rs$page_template_row_count))
+  # if (debug)
+  #   print(paste("Page Template Row Count:", rs$page_template_row_count))
   
   # Body line count is the number of rows available for content on each page
   rs$body_line_count <- rs$line_count - rs$page_template_row_count
-  if (debug)
-    print(paste0("Body Line Count: ", rs$body_line_count))
+  # if (debug)
+  #   print(paste0("Body Line Count: ", rs$body_line_count))
   
   return(rs)
 }
 
 #' @noRd
-get_spacing_multiplier <- function(font_size) {
+get_spacing_multiplier <- function(font_size, rs = NULL) {
   
   if (font_size == 8) {
     sm <- "\\sl-228\\slmult0" 
@@ -617,6 +635,13 @@ get_spacing_multiplier <- function(font_size) {
     sm <- "\\sl-325\\slmult0"
   } else {
     sm <- "\\sl-250\\slmult0" 
+  }
+  
+  # Customized line height setting
+  if (!is.null(rs)) {
+    if (!is.null(rs$user_line_height)) {
+      sm <- paste0("\\sl-", rs$row_height, "\\slmult0")
+    }
   }
   
   return(sm)
