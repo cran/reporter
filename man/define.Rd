@@ -124,8 +124,11 @@ FALSE.  Set this parameter to TRUE if you want to pass the \code{vars}
 value(s) using a variable.}
 
 \item{style}{A \code{\link{cell_style}} object that defines the desired
-style for this column.  The cell style object can be used to define 
-conditional styling.}
+style for this column. The cell style object can be used to define 
+conditional styling. You can apply multiple cell style objects to the same
+column by wrapping them in a list. For multiple styles on the same cell, 
+the priority is custom indicator, "datarow", "labelrow", "blankrow", and NULL.
+For the same type of indicators on the same cell, the last one takes priority.}
 
 \item{group_border}{Adds a horizontal border at the end of a group. 
 Valid values are TRUE or FALSE. Default is FALSE. The group border is

@@ -401,8 +401,11 @@ create_table <- function(x, show_cols = "all", use_attributes = "all",
 #' FALSE.  Set this parameter to TRUE if you want to pass the \code{vars}
 #' value(s) using a variable.
 #' @param style A \code{\link{cell_style}} object that defines the desired
-#' style for this column.  The cell style object can be used to define 
-#' conditional styling.
+#' style for this column. The cell style object can be used to define 
+#' conditional styling. You can apply multiple cell style objects to the same
+#' column by wrapping them in a list. For multiple styles on the same cell, 
+#' the priority is custom indicator, "datarow", "labelrow", "blankrow", and NULL.
+#' For the same type of indicators on the same cell, the last one takes priority. 
 #' @param group_border Adds a horizontal border at the end of a group. 
 #' Valid values are TRUE or FALSE. Default is FALSE. The group border is
 #' another way to separate analysis groups, and can be used in addition
@@ -591,6 +594,13 @@ define <- function(x, vars, label = NULL, format = NULL,
     }
   }
   
+  # If style is single layer, wrap it in a list to aligned with multiple styles
+  if (!is.null(style)) {
+    if (!any(sapply(style, is.list))) {
+      style <- list(style)
+    }
+  }
+  
   # For each passed variable, create an individual definition
   # This make subsequent processing much easier
   for (nm in vars_c) {
@@ -743,7 +753,8 @@ define_c <- function(var, label = NULL, format = NULL,
 #' to pass the column names as variables. Default is FALSE, meaning it
 #' will use non-standard (unquoted) evaluation.
 #' @param style A \code{\link{cell_style}} object that defines a style 
-#' for all columns associated with the column defaults.  
+#' for all columns associated with the column defaults. To apply multiple
+#' default cell styles, pass them in a list.
 #' @return The modified table spec.
 #' @family table
 #' @examples
@@ -976,6 +987,14 @@ column_defaults <- function(x, vars = NULL, from = NULL, to = NULL, label = NULL
     align else label_align
   dflt$width = width
   dflt$n = n
+  
+  # If style is single layer, wrap it in a list to aligned with multiple styles
+  if (!is.null(style)) {
+    if (!any(sapply(style, is.list))) {
+      style <- list(style)
+    }
+  }
+  
   dflt$style = style
 
   x$col_dflts[[length(x$col_dflts) + 1]] <- dflt
@@ -1308,7 +1327,8 @@ spanning_header <- function(x, from, to, label = "",
 #' to pass the column names as variables. Default is FALSE, meaning it
 #' will use non-standard (unquoted) evaluation.
 #' @param style A \code{\link{cell_style}} object that contains the style
-#' specifications for the stub.
+#' specifications for the stub. You may apply multiple \code{\link{cell_style}} 
+#' objects to the stub using a list.
 #' @return The modified table spec.
 #' @family table
 #' @examples 
@@ -1441,6 +1461,14 @@ stub <- function(x, vars, label = "", label_align = NULL,
   } else {
     def$label <- label
   }
+  
+  # If style is single layer, wrap it in a list to aligned with multiple styles
+  if (!is.null(style)) {
+    if (!any(sapply(style, is.list))) {
+      style <- list(style)
+    }
+  }
+  
   def$label_align <- label_align
   def$align <- align
   def$vars <- vars_c

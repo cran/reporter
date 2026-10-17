@@ -14,12 +14,17 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Styles and Themes
+## Styles and Themes{#top}
 
-The **reporter** package now supports styles and themes for HTML reports.
-Styling for more output types will be supported in future versions.
+The **reporter** package now supports styles and themes for HTML reports, 
+and conditional cell styling for HTML, RTF, DOCX, and PDF.
 
-## Custom Style
+* [Create Style](#create_style)
+* [Theme](#theme)
+* [View/Modify a Theme](#mod_theme)
+* [Cell Styles](#cell_style)
+
+## Create Style {#create_style}
 To create a custom style, use the `create_style()` function.  This function
 allows you to control colors and bolding for many common elements of a report. 
 The `create_style()` function returns a style object, which can then
@@ -89,7 +94,9 @@ write_report(rpt)
 ```
 <img src="../man/images/example12a.png" alt="Styles example image A"/>
 
-## Themes
+[top](#top)
+
+## Themes {#theme}
 A Theme may be applied to a report using the function `add_style()` 
 and passing a theme name to the theme parameter.  Currently there are
 seven themes available: "MidnightBlue", "SteelBlue", 
@@ -143,7 +150,9 @@ write_report(rpt)
 ```
 <img src="../man/images/example12b.png" alt="Styles example image B"/>
 
-## View/Modify a Theme
+[top](#top)
+
+## View/Modify a Theme {#mod_theme}
 Sometimes you may want to look at or modify an existing theme.  The function
 `get_theme()` allows you to do this.  Simply pass the theme name to 
 `get_theme()` and it will return the theme as a style object.  From there you 
@@ -240,7 +249,7 @@ Here is a sample of each:
 
 <img src="../man/images/example12h.png" alt="Styles example image H"/>
 
-## Cell Styles
+## Cell Styles {#cell_style}
 
 To modify styles for a particular cell in a table, use the `cell_style()`
 object.  The `cell_style()` object can be passed into the style parameter on
@@ -308,36 +317,52 @@ exist on the input dataset.  The indicator column should have TRUE or FALSE
 values for each row where you want the style applied.  This feature gives you
 complete control over cell styling.  
 
-Now let's look at and example of setting a style on a variable based on the
-variable value:
+Now let's look at and example of setting styles on a variable based on the
+variable value.  This example also demonstrates how to apply multiple 
+styles to the same column or set of columns:
 ```{r eval=FALSE, echo=TRUE} 
 library(reporter)
+library(magrittr)
 
 # Create temporary path
-tmp <- file.path(tempdir(), "example12k.rtf")
+tmp <- file.path(tempdir(), "table1.rtf")
 
 # Prepare data
 df <- data.frame(names = rownames(mtcars), mtcars[, 1:3])
 
-# Set style indicator variable
-df$mpgind <- ifelse(df$mpg > 20, TRUE, FALSE)
+# Set indicator variable
+df$mpgind1 <- ifelse(df$mpg > 20, TRUE, FALSE)
+df$mpgind2 <- ifelse(df$mpg < 12, TRUE, FALSE)
+df$mpgind3 <- ifelse(df$mpg > 30, TRUE, FALSE)
 
 # Create table
-tbl <- create_table(df, first_row_blank = TRUE, 
-                    header_bold = TRUE, borders = c("top", "bottom")) %>% 
-  define(names, label = "Car Name") %>%
+tbl <- create_table(df, first_row_blank = TRUE,
+                    header_bold = TRUE, borders = c("top", "bottom")) %>%
+  column_defaults(style = list(cell_style(bold = TRUE, font_color = "green",
+                                     indicator = "mpgind1"),
+                               cell_style(bold = TRUE, font_color = "red",
+                                          indicator = "mpgind2"))) %>%
+  define(names, label = "Car Name", width = 1.5) %>%
   define(mpg, label = "Miles Per Gallon", 
-         style = cell_style(bold = TRUE, indicator = "mpgind")) %>% 
-  define(cyl, label = "Cylinders") %>% 
-  define(disp, label = "Displacement")  %>% 
-  define(mpgind, visible = FALSE) %>%
-  titles("Table 1.0", "MTCARS with Indicator Variable", 
-         borders = "none", bold = TRUE, font_size = 11) %>% 
+         style = list(cell_style(bold = TRUE, font_color = "green",
+                                 indicator = "mpgind1"),
+                      cell_style(bold = TRUE, font_color = "red",
+                                 indicator = "mpgind2"),
+                      cell_style(cell_color = "yellow", 
+                                 font_color = "green",
+                                 borders = "all",
+                                 indicator = "mpgind3"))) %>%
+  define(cyl, label = "Cylinders") %>%
+  define(disp, label = "Displacement")  %>%
+  define(c(mpgind1, mpgind2, mpgind3), visible = FALSE) %>%
+  titles("Table 1.0", "MTCARS with Cell Styles",
+         borders = "none", bold = TRUE, font_size = 11) %>%
   footnotes("* Motor Trend, 1974", borders = "none", blank_row = "none")
 
 # Create report and add custom style
-rpt <- create_report(tmp, output_type = "RTF", font = "Arial") %>% 
-  add_content(tbl) 
+rpt <- create_report(tmp, output_type = "RTF", font = "Arial",
+                     orientation = "portrait") %>%
+  add_content(tbl)
 
 # Write out report
 write_report(rpt)
@@ -348,9 +373,9 @@ write_report(rpt)
 ```
 <img src="../man/images/example12k.png" alt="Styles example image K"/>
 
-Note that cell styling is available for all output types except TXT.
-Also note that the `cell_style()` object currently only supports "bold" styling.
-More styling options will be added in future releases of **reporter**.
+Cell styling is available for all output types except TXT. See the `cell_style()` 
+function documentation for further information.
 
+[top](#top)
 
 Next: [Example 13: Superscripts and Subscripts](reporter-super.html)
